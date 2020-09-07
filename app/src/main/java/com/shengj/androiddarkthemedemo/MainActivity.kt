@@ -1,5 +1,6 @@
 package com.shengj.androiddarkthemedemo
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -35,8 +36,25 @@ class MainActivity : AppCompatActivity() {
             R.id.action_dark -> AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_YES)
             R.id.action_follow -> AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_FOLLOW_SYSTEM)
             R.id.action_battery -> AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_AUTO_BATTERY)
+            R.id.light_indicator -> if (isNightMode()) {
+                AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_NO)
+            } else {
+                AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_YES)
+            }
         }
         return true
+    }
+
+    /**
+     * Check whether night mode is on or not
+     *
+     * @return if night mode on return true else false
+     */
+    fun isNightMode(): Boolean {
+        return when (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
+            Configuration.UI_MODE_NIGHT_YES -> true
+            else -> false
+        }
     }
 
 }

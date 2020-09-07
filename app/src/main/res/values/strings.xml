@@ -6,4 +6,5 @@
     <string name="auto_battery">Auto Battery</string>
     <string name="user_name">User Name</string>
     <string name="password">Password</string>
+    <string name="light_indicator">Light Indicator</string>
 </resources>

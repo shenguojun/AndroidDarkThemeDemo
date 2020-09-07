@@ -1,58 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="color_main_1">#FB4A3E</color>
-    <color name="color_main_2">#4D71FF</color>
-    <color name="color_main_3">#FF8426</color>
-    <color name="color_success">#40B2FF</color>
-    <color name="color_error">#FF8426</color>
-    <color name="color_label_stress">#FEE6E5</color>
-    <color name="color_label_tint">#E1EBFF</color>
-    <color name="color_label_success">#DEF7FC</color>
-    <color name="color_label_error">#FFEBE0</color>
-    <color name="color_mask">#99090B0F</color>
-    <color name="color_label_1">#F4F5F7</color>
-    <color name="color_label_2">#F4F5F7</color>
-    <color name="color_divider_1">#EEEEF0</color>
-    <color name="color_divider_2">#EEEEF0</color>
     <color name="color_bg_1">#FFFFFF</color>
-    <color name="color_bg_2">#FFFFFF</color>
-    <color name="color_bg_3">#FFFFFF</color>
     <color name="color_text_0">#101214</color>
-    <color name="color_text_1">#2A2B2E</color>
-    <color name="color_text_2">#626469</color>
-    <color name="color_text_3">#939599</color>
-    <color name="color_text_4">#A8AAAD</color>
-    <color name="color_text_5">#C8C9CC</color>
-    <color name="color_text_white">#FFFFFF</color>
-    <color name="color_text_stress">#FB4A3E</color>
-    <color name="color_text_link">#4D71FF</color>
-    <color name="color_text_confirm">#4D71FF</color>
-    <color name="color_text_dismiss">#626469</color>
-    <color name="color_favorite">#FFC926</color>
-    <color name="color_btn_vip_begin">#FFE1A6</color>
-    <color name="color_btn_vip_end">#F5CC7A</color>
-    <color name="color_text_vip">#E0A62E</color>
-    <color name="color_text_btn_vip">#3C3329</color>
-
-    <color name="color_bg_list">#F5F6F7</color>
-    <color name="color_bg_tab">#F5F6F7</color>
-    <color name="color_bg_light">#F5F6F7</color>
-    <color name="color_btn_action_dark">#F2F3F5</color>
-    <color name="color_btn_action_light">#F2F3F5</color>
-    <color name="color_bg_toast">#EB2A2B2E</color>
-    <color name="color_text_0_ondark">#F5F7FA</color>
-    <color name="color_text_1_ondark">#E1E3E6</color>
-    <color name="color_text_2_ondark">#969799</color>
-    <color name="color_text_3_ondark">#707173</color>
-    <color name="color_text_4_ondark">#575859</color>
-    <color name="color_text_5_ondark">#383839</color>
-    <color name="color_text_0_onlight">#17181A</color>
-    <color name="color_text_1_onlight">#2A2B2E</color>
-    <color name="color_text_2_onlight">#626469</color>
-    <color name="color_text_3_onlight">#939599</color>
-    <color name="color_text_4_onlight">#A8AAAD</color>
-    <color name="color_text_5_onlight">#C8C9CC</color>
-
-    <color name="color_ripple_material_light">#19000000</color>
-    <color name="color_ripple_material_dark">#19FFFFFF</color>
+    <color name="color_light">#E0A62E</color>
 </resources>

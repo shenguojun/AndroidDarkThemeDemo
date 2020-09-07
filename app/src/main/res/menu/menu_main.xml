@@ -28,4 +28,10 @@
         android:title="@string/auto_battery"
         app:showAsAction="collapseActionView" />
 
+    <item
+        android:id="@+id/light_indicator"
+        android:icon="@drawable/round_highlight"
+        android:title="@string/light_indicator"
+        app:showAsAction="ifRoom" />
+
 </menu>
