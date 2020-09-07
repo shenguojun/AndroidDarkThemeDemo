@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity() {
      *
      * @return if night mode on return true else false
      */
-    fun isNightMode(): Boolean {
+    private fun isNightMode(): Boolean {
         return when (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
             Configuration.UI_MODE_NIGHT_YES -> true
             else -> false
