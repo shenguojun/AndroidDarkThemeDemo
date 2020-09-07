@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">AndroidDarkThemeDemo</string>
+    <string name="light_theme">Light Theme</string>
+    <string name="dark_theme">Dark Theme</string>
+    <string name="follow_system">Follow System</string>
+    <string name="auto_battery">Auto Battery</string>
+    <string name="user_name">User Name</string>
+    <string name="password">Password</string>
 </resources>

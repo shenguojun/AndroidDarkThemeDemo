@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ @(#)menu_listening_article.xml, 2019-08-29.
+  ~
+  ~ Copyright 2019 Yodao, Inc. All rights reserved.
+  ~ YODAO PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+  -->
+
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_light"
+        android:title="@string/light_theme"
+        app:showAsAction="collapseActionView" />
+
+    <item
+        android:id="@+id/action_dark"
+        android:title="@string/dark_theme"
+        app:showAsAction="collapseActionView" />
+
+    <item
+        android:id="@+id/action_follow"
+        android:title="@string/follow_system"
+        app:showAsAction="collapseActionView" />
+
+    <item
+        android:id="@+id/action_battery"
+        android:title="@string/auto_battery"
+        app:showAsAction="collapseActionView" />
+
+</menu>
