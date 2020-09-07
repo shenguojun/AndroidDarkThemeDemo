@@ -31,11 +31,40 @@
         android:id="@+id/et_identity"
         android:layout_width="200dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
+        android:autofillHints="username"
         android:gravity="center"
-        android:hint="Hello World!"
+        android:hint="User Name"
+        android:inputType="text"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/img_identity"
         app:layout_constraintTop_toBottomOf="@id/toolbar" />
+
+    <ImageView
+        android:id="@+id/img_password"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="10dp"
+        android:src="@drawable/round_fingerprint"
+        app:layout_constraintBottom_toBottomOf="@+id/et_password"
+        app:layout_constraintEnd_toStartOf="@+id/et_password"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/et_password" />
+
+    <EditText
+        android:id="@+id/et_password"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:autofillHints="password"
+        android:gravity="center"
+        android:hint="Password"
+        android:inputType="textPassword"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/img_password"
+        app:layout_constraintTop_toBottomOf="@id/et_identity" />
+
 
     <Button
         android:id="@+id/btn_mode"
@@ -43,9 +72,9 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="50dp"
         android:onClick="switchLightOrDark"
-        tools:text="Current Mode: Light"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        tools:text="Current Mode: Light" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

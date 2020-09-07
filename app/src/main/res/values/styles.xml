@@ -2,15 +2,16 @@
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
-        <item name="android:colorPrimary">@color/color_bg_1</item>
-        <item name="android:colorPrimaryDark">@color/color_bg_1</item>
-        <item name="android:colorAccent">@color/color_main_1</item>
+        <item name="colorPrimary">@color/color_bg_1</item>
+        <item name="colorPrimaryDark">@color/color_bg_1</item>
+        <item name="colorAccent">@color/color_main_1</item>
         <item name="android:textColor">@color/color_text_0</item>
         <item name="android:textColorPrimary">@color/color_text_0</item>
         <item name="android:windowBackground">@color/color_bg_1</item>
         <item name="android:navigationBarColor">@color/color_bg_1</item>
         <item name="android:statusBarColor">@color/color_bg_1</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:forceDarkAllowed">true</item>
     </style>
 
 </resources>
