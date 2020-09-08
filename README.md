@@ -1,3 +1,5 @@
+[toc]
+
 # Android Dark Theme in Action
 
 ## 背景
@@ -102,7 +104,9 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 ## 适配方案
 
-### 主题自动适配
+### 自动适配
+
+#### 1. 主题
 
 将Application和Activity的主题修改为集成自`Theme.AppCompat.DayNight`或者`Theme.MaterialComponents.DayNight`，就可以对于大部分的控件得到较好的深色模式支持。我们看下DayNight主题的定义：
 
@@ -224,15 +228,13 @@ public static void setDefaultNightMode(@NightMode int mode) {
 </style>
 ```
 
-### Force Dark
+#### 2. 色值&图片
 
-## 源码分析
 
-### 主题自动适配
-
-### Material Design
 
 ### Force Dark
+
+对于大型项目而言，对旧项目的每个hardcode色值都进行定义`night`资源适配是个浩大的工程。除了定义`night`资源之外，我们还可以对使用的`Light`风格的主题进行进行强制深色模式转换。
 
 ## 项目指导
 
@@ -256,9 +258,20 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 DayNight并对所有颜色都处理night
 
-## WebView处理
+### 最佳实践
+
+* 尽量使用系统提供的Notification样式
+* 避免hardcode颜色值
+* 尽量使用Vector类型的Drawable并动态设置颜色
+* 编写代码时刻考虑深色模式处理
+
+## WebView深色模式处理
 
 ## Flutter 深色模式适配
+
+Bridge
+
+
 
 ## 参考
 
