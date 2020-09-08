@@ -7,4 +7,7 @@
     <string name="user_name">User Name</string>
     <string name="password">Password</string>
     <string name="light_indicator">Light Indicator</string>
+    <string name="not_define_night_color">Not define night color</string>
+    <string name="switch_theme_daynight">Switch Theme(Current DayNight)</string>
+    <string name="switch_theme_light">Switch Theme(Current Light)</string>
 </resources>

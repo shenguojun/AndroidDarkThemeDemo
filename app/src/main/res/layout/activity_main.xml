@@ -41,6 +41,16 @@
         app:layout_constraintStart_toEndOf="@id/img_identity"
         app:layout_constraintTop_toBottomOf="@id/toolbar" />
 
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/theme_switcher"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/et_password"
+        android:text="@string/switch_theme_daynight" />
+
     <ImageView
         android:id="@+id/img_password"
         android:layout_width="wrap_content"
@@ -66,5 +76,17 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/img_password"
         app:layout_constraintTop_toBottomOf="@id/et_identity" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="50dp"
+        android:background="#FFEBE0"
+        android:padding="20dp"
+        android:text="@string/not_define_night_color"
+        android:textColor="@color/color_text_0"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

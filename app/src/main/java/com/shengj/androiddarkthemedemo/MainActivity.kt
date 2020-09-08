@@ -18,6 +18,15 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setupToolbar()
+        theme_switcher.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                setTheme(R.style.LightAppTheme)
+                theme_switcher.text = getText(R.string.switch_theme_light)
+            } else {
+                setTheme(R.style.DayNightAppTheme)
+                theme_switcher.text = getText(R.string.switch_theme_daynight)
+            }
+        }
     }
 
     private fun setupToolbar() {

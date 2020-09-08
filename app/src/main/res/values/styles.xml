@@ -1,16 +1,29 @@
 <resources>
 
-    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <style name="DayNightAppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="colorPrimary">@color/color_bg_1</item>
         <item name="colorPrimaryDark">@color/color_bg_1</item>
         <item name="colorAccent">@color/color_main_1</item>
         <item name="android:textColor">@color/color_text_0</item>
         <item name="android:textColorPrimary">@color/color_text_0</item>
+        <item name="android:colorControlNormal">@color/color_text_0</item>
         <item name="android:windowBackground">@color/color_bg_1</item>
         <item name="android:navigationBarColor">@color/color_bg_1</item>
         <item name="android:statusBarColor">@color/color_bg_1</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:forceDarkAllowed">true</item>
+    </style>
+
+    <style name="LightAppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/color_bg_1</item>
+        <item name="colorPrimaryDark">@color/color_bg_1</item>
+        <item name="colorAccent">@color/color_main_1</item>
+        <item name="android:textColor">@color/color_text_0</item>
+        <item name="android:textColorPrimary">@color/color_text_0</item>
+        <item name="android:colorControlNormal">@color/color_text_0</item>
+        <item name="android:windowBackground">@color/color_bg_1</item>
+        <item name="android:navigationBarColor">@color/color_bg_1</item>
+        <item name="android:statusBarColor">@color/color_bg_1</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 
 </resources>
