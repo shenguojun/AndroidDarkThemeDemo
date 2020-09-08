@@ -113,16 +113,16 @@ public static void setDefaultNightMode(@NightMode int mode) {
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">		
-  	<!-- ... -->
-		<style name="Theme.AppCompat.DayNight" parent="Theme.AppCompat.Light"/>
+    <!-- ... -->
+    <style name="Theme.AppCompat.DayNight" parent="Theme.AppCompat.Light"/>
     <style name="Theme.AppCompat.DayNight.DarkActionBar" parent="Theme.AppCompat.Light.DarkActionBar"/>
     <style name="Theme.AppCompat.DayNight.Dialog" parent="Theme.AppCompat.Light.Dialog"/>
     <style name="Theme.AppCompat.DayNight.Dialog.Alert" parent="Theme.AppCompat.Light.Dialog.Alert"/>
     <style name="Theme.AppCompat.DayNight.Dialog.MinWidth" parent="Theme.AppCompat.Light.Dialog.MinWidth"/>
     <style name="Theme.AppCompat.DayNight.DialogWhenLarge" parent="Theme.AppCompat.Light.DialogWhenLarge"/>
     <style name="Theme.AppCompat.DayNight.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar"/>
-  <!-- ... -->
- </resources>
+    <!-- ... -->
+</resources>
 ```
 
 ##### res/values-night-v8/values-night-v8.xml
@@ -148,8 +148,8 @@ public static void setDefaultNightMode(@NightMode int mode) {
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2" xmlns:ns2="http://schemas.android.com/tools">
- 		<!-- ... -->
-		<style name="Theme.MaterialComponents.DayNight" parent="Theme.MaterialComponents.Light"/>
+    <!-- ... -->
+    <style name="Theme.MaterialComponents.DayNight" parent="Theme.MaterialComponents.Light"/>
     <style name="Theme.MaterialComponents.DayNight.BottomSheetDialog" parent="Theme.MaterialComponents.Light.BottomSheetDialog"/>
     <style name="Theme.MaterialComponents.DayNight.Bridge" parent="Theme.MaterialComponents.Light.Bridge"/>
     <style name="Theme.MaterialComponents.DayNight.DarkActionBar" parent="Theme.MaterialComponents.Light.DarkActionBar"/>
@@ -165,8 +165,8 @@ public static void setDefaultNightMode(@NightMode int mode) {
     <style name="Theme.MaterialComponents.DayNight.DialogWhenLarge" parent="Theme.MaterialComponents.Light.DialogWhenLarge"/>
     <style name="Theme.MaterialComponents.DayNight.NoActionBar" parent="Theme.MaterialComponents.Light.NoActionBar"/>
     <style name="Theme.MaterialComponents.DayNight.NoActionBar.Bridge" parent="Theme.MaterialComponents.Light.NoActionBar.Bridge"/>
- 		<!-- ... -->
- </resources>
+    <!-- ... -->
+</resources>
 ```
 
 ##### res/values-night-v8/values-night-v8.xml
@@ -204,14 +204,14 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 从上面的分析可以看出，DayNight就是在values以及values-night中分别定义了浅色和深色的主题。如果我们的主题直接继承DayNight主题，那么就不需要重复地声明对应的`night`主题了。
 
-如果我们想对深色模式主题添加自定义属性，那么我们可以显示不继承DayNight主题，并显示地声明主题对应的`night`资源，例如
+如果我们想对深色模式主题添加自定义属性，那么我们可以不继承DayNight主题，并显示地声明主题对应的`night`资源，例如
 
 ##### res/values/themes.xml
 
 ```xml
 <style name="Theme.MyApp" parent="Theme.MaterialComponents.Light">
     <!-- ... -->
-  	<item name="android:windowLightStatusBar">true</item>
+    <item name="android:windowLightStatusBar">true</item>
 </style>
 ```
 
@@ -220,7 +220,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 ```xml
 <style name="Theme.MyApp" parent="Theme.MaterialComponents">
     <!-- ... -->
-  	<item name="android:windowLightStatusBar">false</item>
+    <item name="android:windowLightStatusBar">false</item>
 </style>
 ```
 
