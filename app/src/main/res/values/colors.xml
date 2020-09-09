@@ -4,4 +4,5 @@
     <color name="color_bg_1">#FFFFFF</color>
     <color name="color_text_0">#101214</color>
     <color name="color_light">#E0A62E</color>
+    <color name="custom_color">#FFEBE0</color>
 </resources>

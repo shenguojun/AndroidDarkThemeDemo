@@ -46,10 +46,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="50dp"
+        android:text="@string/switch_theme_daynight"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/et_password"
-        android:text="@string/switch_theme_daynight" />
+        app:layout_constraintTop_toBottomOf="@id/et_password" />
 
     <ImageView
         android:id="@+id/img_password"
@@ -78,6 +78,20 @@
         app:layout_constraintTop_toBottomOf="@id/et_identity" />
 
     <TextView
+        android:id="@+id/define_night_color"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="50dp"
+        android:background="@drawable/bg_text"
+        android:padding="20dp"
+        android:text="@string/define_night_color"
+        android:textColor="@color/color_text_0"
+        app:layout_constraintBottom_toTopOf="@+id/not_define_night_color"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/not_define_night_color"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="50dp"

@@ -1,5 +1,7 @@
 [toc]
 
+![Hot Take: Dark Mode | The Ionic Blog](https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/dark-mode-hot-take.png)
+
 # Android Dark Theme in Action
 
 ## 背景
@@ -112,7 +114,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 ![image-20200908171815954](https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200908171815954.png)
 
-##### res/values/values.xml
+**res/values/values.xml**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -129,7 +131,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 </resources>
 ```
 
-##### res/values-night-v8/values-night-v8.xml
+**res/values-night-v8/values-night-v8.xml**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -147,7 +149,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 ![image-20200908171758720](https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200908171758720.png)
 
-##### res/values/values.xml
+**res/values/values.xml**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -173,7 +175,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 </resources>
 ```
 
-##### res/values-night-v8/values-night-v8.xml
+**res/values-night-v8/values-night-v8.xml**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -206,11 +208,11 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 *Tips: MaterialComponents.Bridge继承自AppCompat主题，并增加了Material Components的主题属性，如果项目之前是用的AppCompat，那么使用对应的Bridge主题可以快速切换到Material Design。*
 
-从上面的分析可以看出，DayNight就是在values以及values-night中分别定义了浅色和深色的主题。如果我们的主题直接继承DayNight主题，那么就不需要重复地声明对应的`night`主题了。
+从上面的分析可以看出，DayNight就是在values以及values-night中分别定义了浅色和深色的主题。如果我们的主题直接继承DayNight主题，那么就不需要重复地声明对应的`night`主题资源了。
 
 如果我们想对深色模式主题添加自定义属性，那么我们可以不继承DayNight主题，并显示地声明主题对应的`night`资源，例如
 
-##### res/values/themes.xml
+**res/values/themes.xml**
 
 ```xml
 <style name="Theme.MyApp" parent="Theme.MaterialComponents.Light">
@@ -219,7 +221,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 </style>
 ```
 
-##### res/values-night/themes.xml
+**res/values-night/themes.xml**
 
 ```xml
 <style name="Theme.MyApp" parent="Theme.MaterialComponents">
@@ -228,13 +230,111 @@ public static void setDefaultNightMode(@NightMode int mode) {
 </style>
 ```
 
-#### 2. 色值&图片
+*Tips: 若需要动态修改主题要在调用inflate之前调用，否则不会生效。*
 
+#### 2. 色值
 
+##### 主题自动切换颜色
+
+除了定义不同模式使用不同的主题，我们还可以对主题设置自定义的色值。在设置主题色值之前，我们先了解一下Android主题的颜色系统。
+
+<img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/k6WO1fd7T40A9JvSVfHqs0CPLFyTEDCecsVGxEDhOaTP0wUTPYOVVkxt60hKxBprgNoMqs8OyKqtlaQ4tDBtQJs-fTcZrpZEjxhUVQ=w1064-v0.png" alt="Diagram of Material color scheme displaying the baseline Material color theme" style="zoom: 67%;" />
+
+* colorPrimary：主要品牌颜色，一般用于ActionBar背景
+* colorPrimaryDark：默认用于顶部状态栏和底部导航栏
+* colorPrimaryVariant：主要品牌颜色的可选颜色
+* colorSecondary：第二品牌颜色
+* colorSecondaryVariant：第二品牌颜色的可选颜色
+* colorPrimarySurface：对应Light主题指向colorPrimary，Dark主题指向colorSurface
+* colorOn[Primary, Secondary, Surface ...]，在Primary等这些背景的上面内容的颜色，例如ActioBar上面的文字颜色
+* colorAccent：默认设置给colorControlActivated，一般是主要品牌颜色的明亮版本补充
+* colorControlNormal：图标和控制项的正常状态颜色
+* colorControlActivated：图标和控制项的选中颜色（例如Checked或者Switcher）
+* colorControlHighlight：点击高亮效果（ripple或者selector）
+* colorButtonNormal：按钮默认状态颜色
+* colorSurface：cards, sheets, menus等控件的背景颜色
+* colorBackground：页面的背景颜色
+* colorError：展示错误的颜色
+* textColorPrimary：主要文字颜色
+* textColorSecondary：可选文字颜色
+
+*Tips: 当某个属性同时可以通过 `?attr/xxx` 或者` ?android:attr/xxx`获取时，最好使用` ?attr/xxx`，因为`?android:attr/xxx`是通过系统获取，而`?attr/xxx`是通过静态库类似于AppCompat 或者 Material Design Component引入的，使用非系统版本的属性可以提高平台通用性。*
+
+如果需要自定义主题颜色，我们可以对颜色分别定义`notnight`和`night`两份，放在`values`以及`values-night`资源文件夹中，并在自定义主题时，传入给对应的颜色属性。例如：
+
+**res/values/styles.xml**
+
+```xml
+<resources>
+    <style name="DayNightAppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar.Bridge">
+        <item name="colorPrimary">@color/color_bg_1</item>
+        <item name="colorPrimaryDark">@color/color_bg_1</item>
+        <item name="colorAccent">@color/color_main_1</item>
+    </style>
+</resources>
+```
+
+**res/values/colors.xml**
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="color_main_1">#4D71FF</color>
+    <color name="color_bg_1">#FFFFFF</color>
+    <color name="color_text_0">#101214</color>
+</resources>
+```
+
+**res/values-night/colors.xml**
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="color_main_1">#FF584D</color>
+    <color name="color_bg_1">#0B0C0D</color>
+    <color name="color_text_0">#F5F7FA</color>
+</resources>
+```
+
+##### 控件自动切换颜色
+
+同样的，我们可以在布局的XML文件中直接使用定义好的颜色值，例如
+
+```xml
+<TextView 
+      android:text="自动变色文字"
+      android:background="@drawable/bg_text"
+      android:textColor="@color/color_text_0" />
+```
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <stroke android:color="@color/color_text_0" android:width="2dp"/>
+    <solid android:color="@color/color_bg_1" />
+</shape>
+```
+
+这样这个文字就会在深色模式中展示为黑底白字，在非深色模式中展示为白底黑字。
+
+<img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200909170222408.png" alt="image-20200909170222408" style="zoom: 50%;" />
+
+<img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200909170254174.png" alt="image-20200909170254174" style="zoom:50%;" />
+
+#### 3. 图片
+
+vector图片
+
+Lottie
+
+网络获取图片
 
 ### Force Dark
 
 对于大型项目而言，对旧项目的每个hardcode色值都进行定义`night`资源适配是个浩大的工程。除了定义`night`资源之外，我们还可以对使用的`Light`风格的主题进行进行强制深色模式转换。
+
+如果某些组件不希望被forcedark，那么需要单独设置`android:forceDarkAllowed="false"`
 
 ## 项目指导
 
@@ -247,6 +347,8 @@ public static void setDefaultNightMode(@NightMode int mode) {
 #### 2. XML中设置图片
 
 #### 3. 代码动态判断切换颜色&图片
+
+tint
 
 #### 4. 主题修改
 
@@ -265,13 +367,23 @@ DayNight并对所有颜色都处理night
 * 尽量使用Vector类型的Drawable并动态设置颜色
 * 编写代码时刻考虑深色模式处理
 
-## WebView深色模式处理
+## 其他处理
 
-## Flutter 深色模式适配
+### WebView深色模式处理
+
+### Flutter 深色模式适配
 
 Bridge
 
 
 
 ## 参考
+
+1. [Google Developers - Dark Theme](https://developer.android.com/guide/topics/ui/look-and-feel/darktheme#top_of_page)
+2. [Material Design - Dark Theme](https://material.io/develop/android/theming/dark)
+3. [Material Design - The color system](https://material.io/design/color/the-color-system.html)
+4. [Android 10 暗黑模式适配，你需要知道的一切](https://juejin.im/post/6844904173788463112#heading-15)
+5. [Android 10 Dark Theme: Getting Started](https://www.raywenderlich.com/6488033-android-10-dark-theme-getting-started)
+6. [Android styling: themes vs styles](https://medium.com/androiddevelopers/android-styling-themes-vs-styles-ebe05f917578)
+7. [Android styling: common theme attributes](https://medium.com/androiddevelopers/android-styling-common-theme-attributes-8f7c50c9eaba)
 
