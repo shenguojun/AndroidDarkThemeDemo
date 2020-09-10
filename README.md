@@ -2,7 +2,7 @@
 
 ![Hot Take: Dark Mode | The Ionic Blog](https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/dark-mode-hot-take.png)
 
-# Android Dark Theme in Action
+# Android Dark Theme in Action (Android深色模式实战)
 
 ## 背景
 
@@ -376,11 +376,99 @@ auto_color_text.setTextColor(if (isNightMode()) {
 
 ##### Lottie
 
-
+对于[Lottie](http://airbnb.io/lottie/#/README)动画，我们可以使用Lottie的[Dynamic Properties](http://airbnb.io/lottie/#/android?id=dynamic-properties)特性来针对深色模式进行颜色变化。例如我们有以下两个动画，左边是由颜色填充的机器人，右边是由描边生成的正在播放动画，我们可以调用`LottieAnimationView.resolveKeyPath()`方法获取动画的路径。
 
 <img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200910152855484.png" alt="image-20200910152855484" style="zoom:67%;" />
 
 <img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200910152923192.png" alt="image-20200910152923192" style="zoom:67%;" />
+
+```kotlin
+lottie_android_animate.addLottieOnCompositionLoadedListener {
+  lottie_android_animate.resolveKeyPath(KeyPath("**")).forEach {
+    Log.d(TAG, it.keysToString())
+  }
+  setupValueCallbacks()
+}
+```
+
+对于机器小人打印的KeyPath如下：
+
+```
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [MasterController]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Head]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Head, Group 3]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Head, Group 3, Fill 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Blink]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Blink, Rectangle 2]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Blink, Rectangle 2, Rectangle Path 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Blink, Rectangle 2, Fill 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Blink, Rectangle 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Blink, Rectangle 1, Rectangle Path 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Blink, Rectangle 1, Fill 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Eyes]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Eyes, Group 3]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Eyes, Group 3, Fill 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [BeloOutlines]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [BeloOutlines, Group 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [BeloOutlines, Group 1, Stroke 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Shirt]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Shirt, Group 5]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Shirt, Group 5, Fill 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Body]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Body, Group 4]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [Body, Group 4, Fill 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [LeftFoot]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [LeftFoot, Group 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [LeftFoot, Group 1, Fill 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [RightFoot]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [RightFoot, Group 2]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [RightFoot, Group 2, Fill 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [LeftArmWave]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [LeftArmWave, LeftArm]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [LeftArmWave, LeftArm, Group 6]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [LeftArmWave, LeftArm, Group 6, Fill 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [LeftArmWave, LeftArm, Group 5]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [LeftArmWave, LeftArm, Group 5, Fill 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [RightArm]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [RightArm, Group 6]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [RightArm, Group 6, Fill 1]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [RightArm, Group 5]
+2020-09-10 15:30:55.762 29281-29281/com.shengj.androiddarkthemedemo D/DarkThemeDemo: [RightArm, Group 5, Fill 1]
+```
+
+我们抽取其中的某些形状来动态改变颜色，例如我们抽取左右手臂以及机器小人身上的T恤
+
+```kotlin
+private fun setupValueCallbacks() {
+        // 机器人右手臂
+        val rightArm = KeyPath("RightArm", "Group 6", "Fill 1")
+        // 机器人左手臂
+        val leftArm = KeyPath("LeftArmWave", "LeftArm", "Group 6", "Fill 1")
+        // 机器人T恤
+        val shirt = KeyPath("Shirt", "Group 5", "Fill 1")
+        // 设置右手臂颜色
+        lottie_android_animate.addValueCallback(rightArm, LottieProperty.COLOR) {
+            ContextCompat.getColor(this, R.color.color_main_1)
+        }
+        // 设置左手臂颜色
+        lottie_android_animate.addValueCallback(shirt, LottieProperty.COLOR) {
+            ContextCompat.getColor(this, R.color.color_light)
+        }
+        // 设置T恤颜色
+        lottie_android_animate.addValueCallback(leftArm, LottieProperty.COLOR) {
+            ContextCompat.getColor(this, R.color.color_custom)
+        }
+  
+        // 播放动画描边颜色
+        lottie_playing_animate.addValueCallback(KeyPath("**"), LottieProperty.STROKE_COLOR) {
+            ContextCompat.getColor(this, R.color.color_text_0)
+        }
+    }
+```
+
+由于`color_main_1`、`color_light`以及`color_custom`都已经定义过深色模式和明亮模式的色值，因此在深色模式切换时，Lottie动画的这个机器小人的左右手臂和T恤颜色会随着深色模式切换而变化。
+
+同样的对于播放动画，我们也可以设置描边颜色，来达到深色模式切换的效果。
 
 ##### 网络获取图片
 
@@ -456,7 +544,9 @@ DayNight并对所有颜色都处理night
 
 Bridge
 
+## Demo
 
+上述提到的代码可以到这个[Github项目](https://github.com/shenguojun/AndroidDarkThemeDemo)下载
 
 ## 参考
 
