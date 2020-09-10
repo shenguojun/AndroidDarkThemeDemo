@@ -114,7 +114,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 ![image-20200908171815954](https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200908171815954.png)
 
-**res/values/values.xml**
+​	**res/values/values.xml**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -131,7 +131,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 </resources>
 ```
 
-**res/values-night-v8/values-night-v8.xml**
+​	**res/values-night-v8/values-night-v8.xml**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -149,7 +149,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 ![image-20200908171758720](https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200908171758720.png)
 
-**res/values/values.xml**
+​	**res/values/values.xml**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -175,7 +175,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 </resources>
 ```
 
-**res/values-night-v8/values-night-v8.xml**
+​	**res/values-night-v8/values-night-v8.xml**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -212,7 +212,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 如果我们想对深色模式主题添加自定义属性，那么我们可以不继承DayNight主题，并显示地声明主题对应的`night`资源，例如
 
-**res/values/themes.xml**
+​	**res/values/themes.xml**
 
 ```xml
 <style name="Theme.MyApp" parent="Theme.MaterialComponents.Light">
@@ -221,7 +221,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 </style>
 ```
 
-**res/values-night/themes.xml**
+​	**res/values-night/themes.xml**
 
 ```xml
 <style name="Theme.MyApp" parent="Theme.MaterialComponents">
@@ -262,7 +262,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 如果需要自定义主题颜色，我们可以对颜色分别定义`notnight`和`night`两份，放在`values`以及`values-night`资源文件夹中，并在自定义主题时，传入给对应的颜色属性。例如：
 
-**res/values/styles.xml**
+​	**res/values/styles.xml**
 
 ```xml
 <resources>
@@ -274,7 +274,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 </resources>
 ```
 
-**res/values/colors.xml**
+​	**res/values/colors.xml**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -282,10 +282,11 @@ public static void setDefaultNightMode(@NightMode int mode) {
     <color name="color_main_1">#4D71FF</color>
     <color name="color_bg_1">#FFFFFF</color>
     <color name="color_text_0">#101214</color>
+    <color name="color_light">#E0A62E</color>
 </resources>
 ```
 
-**res/values-night/colors.xml**
+​	**res/values-night/colors.xml**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -293,6 +294,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
     <color name="color_main_1">#FF584D</color>
     <color name="color_bg_1">#0B0C0D</color>
     <color name="color_text_0">#F5F7FA</color>
+    <color name="color_light">#626469</color>
 </resources>
 ```
 
@@ -302,6 +304,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 ```xml
 <TextView 
+      android:id="@+id/auto_color_text"
       android:text="自动变色文字"
       android:background="@drawable/bg_text"
       android:textColor="@color/color_text_0" />
@@ -316,25 +319,72 @@ public static void setDefaultNightMode(@NightMode int mode) {
 </shape>
 ```
 
-这样这个文字就会在深色模式中展示为黑底白字，在非深色模式中展示为白底黑字。
-
-<img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200909170222408.png" alt="image-20200909170222408" style="zoom: 50%;" />
+这样这个文字就会自动在深色模式中展示为黑底白字，在非深色模式中展示为白底黑字。
 
 <img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200909170254174.png" alt="image-20200909170254174" style="zoom:50%;" />
 
+<img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200909170222408.png" alt="image-20200909170222408" style="zoom: 50%;" />
+
+##### 动态设置颜色
+
+如果需要代码设置颜色，如果色值已经设置过`notnight`和`night`两份，那么直接设置颜色就可以得到深色模式变色效果。
+
+```kotlin
+auto_color_text.setTextColor(ContextCompat.getColor(this, R.color.color_text_0))
+```
+
+如果色值是从服务接口获取，那么可以使用上述深色模式的判断设置。
+
+```kotlin
+auto_color_text.setTextColor(if (isNightMode()) {
+  Color.parseColor(darkColorFromNetwork)
+} else {
+  Color.parseColor(colorFromNetwork)
+})
+```
+
 #### 3. 图片
 
-vector图片
+##### 普通图片
 
-Lottie
+将图片分为明亮模式和深色模式两份，分别放置在`drawable-night-xxx`以及`drawable-xxx`文件夹中，并在view中直接使用即可，当深色模式切换时，会自动使用对应深色模式的资源。如下图所示：
 
-网络获取图片
+<img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200910101322619.png" alt="image-20200910101322619" style="zoom:50%;" />
+
+```xml
+<ImageView android:src="@drawable/round_fingerprint" />
+```
+
+##### Vector图片
+
+在Vector资源定义时，通过指定画笔颜色来实现对深色模式的适配，例如：
+
+```xml
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:tint="@color/color_light"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M6.29,14.29L9,17v4c0,0.55 0.45,1 1,1h4c0.55,0 1,-0.45 1,-1v-4l2.71,-2.71c0.19,-0.19 0.29,-0.44 0.29,-0.71L18,10c0,-0.55 -0.45,-1 -1,-1L7,9c-0.55,0 -1,0.45 -1,1v3.59c0,0.26 0.11,0.52 0.29,0.7zM12,2c0.55,0 1,0.45 1,1v1c0,0.55 -0.45,1 -1,1s-1,-0.45 -1,-1L11,3c0,-0.55 0.45,-1 1,-1zM4.21,5.17c0.39,-0.39 1.02,-0.39 1.42,0l0.71,0.71c0.39,0.39 0.39,1.02 0,1.41 -0.39,0.39 -1.02,0.39 -1.41,0l-0.72,-0.71c-0.39,-0.39 -0.39,-1.02 0,-1.41zM17.67,5.88l0.71,-0.71c0.39,-0.39 1.02,-0.39 1.41,0 0.39,0.39 0.39,1.02 0,1.41l-0.71,0.71c-0.39,0.39 -1.02,0.39 -1.41,0 -0.39,-0.39 -0.39,-1.02 0,-1.41z" />
+</vector>
+```
+
+其中`android:tint`为叠加颜色，`@color/color_light`已经分别定义好了`notnight`和`night`的色值。
+
+##### Lottie
+
+##### 网络获取图片
 
 ### Force Dark
 
 对于大型项目而言，对旧项目的每个hardcode色值都进行定义`night`资源适配是个浩大的工程。除了定义`night`资源之外，我们还可以对使用的`Light`风格的主题进行进行强制深色模式转换。
 
 如果某些组件不希望被forcedark，那么需要单独设置`android:forceDarkAllowed="false"`
+
+如果已经适配过night资源的空间，那么需要单独设置为`android:forceDarkAllowed="false"`
 
 ## 项目指导
 
@@ -343,6 +393,31 @@ Lottie
 #### 1. XML中设置颜色
 
 透明度处理（脚本自动生成）
+
+Selector api 23以上
+
+```kotlin
+not_define_night_color.setBackgroundColor(ContextCompat.getColor(this, R.color.color_main_1))
+        not_define_night_color.backgroundTintList = ContextCompat.getColorStateList(this, R.color.color_main_1_alpha_20)
+```
+
+```xml
+<TextView
+        android:id="@+id/not_define_night_color"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="50dp"
+        android:background="@color/color_main_1"
+        android:backgroundTint="@color/color_main_1_alpha_20"
+        android:padding="20dp"
+        android:text="@string/not_define_night_color"
+        android:textColor="@color/color_text_0"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+```
+
+
 
 #### 2. XML中设置图片
 
@@ -386,4 +461,5 @@ Bridge
 5. [Android 10 Dark Theme: Getting Started](https://www.raywenderlich.com/6488033-android-10-dark-theme-getting-started)
 6. [Android styling: themes vs styles](https://medium.com/androiddevelopers/android-styling-themes-vs-styles-ebe05f917578)
 7. [Android styling: common theme attributes](https://medium.com/androiddevelopers/android-styling-common-theme-attributes-8f7c50c9eaba)
+8. [Android Styling: prefer theme attributes](https://medium.com/androiddevelopers/android-styling-prefer-theme-attributes-412caa748774)
 

@@ -14,6 +14,9 @@ import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        private var isDayNightTheme = true
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -22,11 +25,23 @@ class MainActivity : AppCompatActivity() {
             if (isChecked) {
                 setTheme(R.style.LightAppTheme)
                 theme_switcher.text = getText(R.string.switch_theme_light)
+                if (isDayNightTheme) {
+                    isDayNightTheme = false
+                    recreate()
+                }
             } else {
                 setTheme(R.style.DayNightAppTheme)
                 theme_switcher.text = getText(R.string.switch_theme_daynight)
+                if (!isDayNightTheme) {
+                    isDayNightTheme = true
+                    recreate()
+                }
             }
         }
+
+//        not_define_night_color.setBackgroundColor(ContextCompat.getColor(this, R.color.color_main_1))
+//        not_define_night_color.backgroundTintList = ContextCompat.getColorStateList(this, R.color.color_main_1_alpha_20)
+//        define_night_color.setTextColor(ContextCompat.getColor(this, R.color.custom_color))
     }
 
     private fun setupToolbar() {
