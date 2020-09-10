@@ -2,6 +2,7 @@ package com.shengj.androiddarkthemedemo
 
 import android.content.res.Configuration
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
@@ -11,16 +12,24 @@ import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
 import androidx.core.content.ContextCompat
+import com.airbnb.lottie.LottieProperty
+import com.airbnb.lottie.model.KeyPath
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
     companion object {
+        private const val TAG = "DarkThemeDemo"
         private var isDayNightTheme = true
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setupToolbar()
+        setupView()
+    }
+
+    private fun setupView() {
         theme_switcher.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 setTheme(R.style.LightAppTheme)
@@ -38,10 +47,38 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+        lottie_android_animate.addLottieOnCompositionLoadedListener {
+            lottie_android_animate.resolveKeyPath(KeyPath("**")).forEach {
+                Log.d(TAG, it.keysToString())
+            }
+            setupValueCallbacks()
+        }
+
+        lottie_playing_animate.addLottieOnCompositionLoadedListener {
+            setupValueCallbacks()
+        }
 
 //        not_define_night_color.setBackgroundColor(ContextCompat.getColor(this, R.color.color_main_1))
 //        not_define_night_color.backgroundTintList = ContextCompat.getColorStateList(this, R.color.color_main_1_alpha_20)
 //        define_night_color.setTextColor(ContextCompat.getColor(this, R.color.custom_color))
+    }
+
+    private fun setupValueCallbacks() {
+        lottie_playing_animate.addValueCallback(KeyPath("**"), LottieProperty.STROKE_COLOR) {
+            ContextCompat.getColor(this, R.color.color_text_0)
+        }
+        val rightArm = KeyPath("RightArm", "Group 6", "Fill 1")
+        val leftArm = KeyPath("LeftArmWave", "LeftArm", "Group 6", "Fill 1")
+        val shirt = KeyPath("Shirt", "Group 5", "Fill 1")
+        lottie_android_animate.addValueCallback(rightArm, LottieProperty.COLOR) {
+            ContextCompat.getColor(this, R.color.color_main_1)
+        }
+        lottie_android_animate.addValueCallback(shirt, LottieProperty.COLOR) {
+            ContextCompat.getColor(this, R.color.color_light)
+        }
+        lottie_android_animate.addValueCallback(leftArm, LottieProperty.COLOR) {
+            ContextCompat.getColor(this, R.color.color_custom)
+        }
     }
 
     private fun setupToolbar() {

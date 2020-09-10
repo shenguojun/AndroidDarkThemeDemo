@@ -345,7 +345,7 @@ auto_color_text.setTextColor(if (isNightMode()) {
 
 #### 3. 图片
 
-##### 普通图片
+##### 普通图片&Gif图片
 
 将图片分为明亮模式和深色模式两份，分别放置在`drawable-night-xxx`以及`drawable-xxx`文件夹中，并在view中直接使用即可，当深色模式切换时，会自动使用对应深色模式的资源。如下图所示：
 
@@ -375,6 +375,12 @@ auto_color_text.setTextColor(if (isNightMode()) {
 其中`android:tint`为叠加颜色，`@color/color_light`已经分别定义好了`notnight`和`night`的色值。
 
 ##### Lottie
+
+
+
+<img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200910152855484.png" alt="image-20200910152855484" style="zoom:67%;" />
+
+<img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200910152923192.png" alt="image-20200910152923192" style="zoom:67%;" />
 
 ##### 网络获取图片
 
@@ -462,4 +468,6 @@ Bridge
 6. [Android styling: themes vs styles](https://medium.com/androiddevelopers/android-styling-themes-vs-styles-ebe05f917578)
 7. [Android styling: common theme attributes](https://medium.com/androiddevelopers/android-styling-common-theme-attributes-8f7c50c9eaba)
 8. [Android Styling: prefer theme attributes](https://medium.com/androiddevelopers/android-styling-prefer-theme-attributes-412caa748774)
+9. [Lottie - Dynamic Properties](http://airbnb.io/lottie/#/android?id=dynamic-properties)
+10. [Lottie on Android: Part 3 — Dynamic properties](https://medium.com/comparethemarket/lottie-on-android-part-3-dynamic-properties-8aa566ba4fbf)
 
