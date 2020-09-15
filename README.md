@@ -6,7 +6,7 @@
 
 ## 背景
 
-从Android10（API 29）开始，Google开始官方支持深色模式，到目前为止，我们从用户数据分析**50%**以上的用户已经使用上了Android10系统。深色模式可以节省电量、在环境亮度较暗的时候保护视力，更是夜间活跃用户的强烈需求。对深色模式的适配有利于提升用户口碑。
+从Android10（API 29）开始，在原有的主题适配的基础上，Google开始提供了Force Dark机制，在系统底层直接对颜色和图片进行转换处理，原生支持深色模式。到目前为止，我们从用户数据分析**50%**以上的用户已经使用上了Android10系统。深色模式可以节省电量、改善弱势及强光敏感用户的可视性，并能在环境亮度较暗的时候保护视力，更是夜间活跃用户的强烈需求。对深色模式的适配有利于提升用户口碑。
 
 深色模式在安卓上可以分为以下四种场景：
 
@@ -258,7 +258,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 * textColorPrimary：主要文字颜色
 * textColorSecondary：可选文字颜色
 
-*Tips: 当某个属性同时可以通过 `?attr/xxx` 或者` ?android:attr/xxx`获取时，最好使用` ?attr/xxx`，因为`?android:attr/xxx`是通过系统获取，而`?attr/xxx`是通过静态库类似于AppCompat 或者 Material Design Component引入的，使用非系统版本的属性可以提高平台通用性。*
+*Tips: 当某个属性同时可以通过 `?attr/xxx` 或者` ?android:attr/xxx`获取时，最好使用` ?attr/xxx`，因为`?android:attr/xxx`是通过系统获取，而`?attr/xxx`是通过静态库类似于AppCompat 或者 Material Design Component引入的。使用非系统版本的属性可以提高平台通用性。*
 
 如果需要自定义主题颜色，我们可以对颜色分别定义`notnight`和`night`两份，放在`values`以及`values-night`资源文件夹中，并在自定义主题时，传入给对应的颜色属性。例如：
 
@@ -343,7 +343,7 @@ auto_color_text.setTextColor(if (isNightMode()) {
 })
 ```
 
-#### 3. 图片
+#### 3. 图片&动画
 
 ##### 普通图片&Gif图片
 
@@ -472,17 +472,27 @@ private fun setupValueCallbacks() {
 
 ##### 网络获取图片
 
+对于网络获取的图片，可以让服务接口分别给出明亮模式和深色模式两套素材，然后根据上述的深色模式判断来进行切换
+
+```kotlin
+Glide.with(this)
+  .load(if(isNightMode() nightImageUrl else imageUrl))
+  .into(imgView)
+```
+
 ### Force Dark
 
-对于大型项目而言，对旧项目的每个hardcode色值都进行定义`night`资源适配是个浩大的工程。除了定义`night`资源之外，我们还可以对使用的`Light`风格的主题进行进行强制深色模式转换。
+看到这里可能会有人有疑问，对于大型的项目而言，里面已经hardcore了很多的颜色值，并且很多图片都没有设计成深色模式的，那做深色模式适配是不是一个不可能完成的任务呢？答案是否定的。对于大型项目而言，除了对所有的颜色和图片定义`night`资源的自动适配方法外，我们还可以对使用`Light`风格主题的页面进行进行**强制深色模式转换**。
 
-如果某些组件不希望被forcedark，那么需要单独设置`android:forceDarkAllowed="false"`
 
-如果已经适配过night资源的空间，那么需要单独设置为`android:forceDarkAllowed="false"`
 
 ## 项目指导
 
 ### 旧项目改造
+
+上面提到的自动适配方案和Force Dark方案是否可以同时使用呢，答案是肯定的。下面我们来看对旧项目需要怎么一步步地进行改造，以及有哪些需要注意的问题。
+
+
 
 #### 1. XML中设置颜色
 
@@ -525,7 +535,13 @@ tint
 
 将主题复制一份到night文件夹中，并设置forcedark
 
-### 新项目
+由于针对`night`资源的自动深色模式适配在Andorid10之前的版本就已经存在，但是Android10之前的版本没有ForceDark，因此适配了部分的`night`资源可能会导致只有部分页面或控件变成深色，为了避免这个问题，对于旧项目而言添加`night`资源需要指定资源的ap等级为29。
+
+ForceDark和`night`资源自动适配会产生叠加的效果，如果某些组件不希望被forcedark，那么需要单独设置`android:forceDarkAllowed="false"`
+
+如果已经适配过night资源的空间，那么需要单独设置为`android:forceDarkAllowed="false"`
+
+### 新项目Or新模块
 
 DayNight并对所有颜色都处理night
 
@@ -560,4 +576,7 @@ Bridge
 8. [Android Styling: prefer theme attributes](https://medium.com/androiddevelopers/android-styling-prefer-theme-attributes-412caa748774)
 9. [Lottie - Dynamic Properties](http://airbnb.io/lottie/#/android?id=dynamic-properties)
 10. [Lottie on Android: Part 3 — Dynamic properties](https://medium.com/comparethemarket/lottie-on-android-part-3-dynamic-properties-8aa566ba4fbf)
+11. [MIUI 深色模式适配说明](https://dev.mi.com/console/doc/detail?pId=2298)
+12. [OPPO 暗色模式适配说明](https://open.oppomobile.com/wiki/doc#id=10658)
+13. [Android Q深色模式源码解析](https://www.jianshu.com/p/5005969bf37a)
 
