@@ -74,6 +74,18 @@ fun isNightMode(): Boolean {
 
 ### 模式设置
 
+深色模式设置可以从三个层级设置，分别是系统层、Applcation层以及Activity层。底层的设置会覆盖上层的设置，例如系统设置了深色模式，但是Application设置了浅色模式，那么应用会显示浅色主题。
+
+<img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/1*2W_EKdaBH1NQZmIc58eQDA.png" alt="Image for post" style="zoom: 67%;" />
+
+系统层是指系统设置中，根据不同产商的手机，可以在设置->显示中修改系统为深色模式。
+
+Application层通过`AppCompatDelegate.setDefaultNightMode()`设置深色模式。
+
+Activity层通过[getDelegate().setLocalNightMode()](https://developer.android.com/reference/androidx/appcompat/app/AppCompatDelegate.html#setLocalNightMode(int))设置深色模式。
+
+当深色模式改变时，Activity会重建，如果不希望Activity重建，可以在manifest中设置`android:configChanges="uiMode"`，不过设置之后页面的颜色改变需要Activity在中通过监听`onConfigurationChanged`来动态改变。
+
 通过[AppCompatDelegate.setDefaultNightMode(int)](https://developer.android.com/reference/androidx/appcompat/app/AppCompatDelegate#setDefaultNightMode(int))可以设置深色模式，源码如下：
 
 ```java
@@ -579,4 +591,5 @@ Bridge
 11. [MIUI 深色模式适配说明](https://dev.mi.com/console/doc/detail?pId=2298)
 12. [OPPO 暗色模式适配说明](https://open.oppomobile.com/wiki/doc#id=10658)
 13. [Android Q深色模式源码解析](https://www.jianshu.com/p/5005969bf37a)
+14. [Moving to the Dark Side: Dark Theme Recap](https://proandroiddev.com/android-dark-theme-implementation-recap-4fcffb0c4bff)
 

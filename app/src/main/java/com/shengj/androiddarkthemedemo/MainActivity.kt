@@ -2,7 +2,6 @@ package com.shengj.androiddarkthemedemo
 
 import android.content.res.Configuration
 import android.os.Bundle
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
@@ -27,6 +26,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         setupToolbar()
         setupView()
+        lifecycle.addObserver(LifeCyclePrinter(TAG))
     }
 
     private fun setupView() {
@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity() {
         }
         lottie_android_animate.addLottieOnCompositionLoadedListener {
             lottie_android_animate.resolveKeyPath(KeyPath("**")).forEach {
-                Log.d(TAG, it.keysToString())
+//                Log.d(TAG, it.keysToString())
             }
             setupValueCallbacks()
         }
