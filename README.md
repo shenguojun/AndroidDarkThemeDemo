@@ -84,7 +84,7 @@ Application层通过`AppCompatDelegate.setDefaultNightMode()`设置深色模式�
 
 Activity层通过[getDelegate().setLocalNightMode()](https://developer.android.com/reference/androidx/appcompat/app/AppCompatDelegate.html#setLocalNightMode(int))设置深色模式。
 
-当深色模式改变时，Activity会重建，如果不希望Activity重建，可以在manifest中设置`android:configChanges="uiMode"`，不过设置之后页面的颜色改变需要Activity在中通过监听`onConfigurationChanged`来动态改变。
+当深色模式改变时，Activity会重建，如果不希望Activity重建，可以在`AndroidManifest.xml`中对对应的Activity设置`android:configChanges="uiMode"`，不过设置之后页面的颜色改变需要Activity在中通过监听`onConfigurationChanged`来动态改变。
 
 通过[AppCompatDelegate.setDefaultNightMode(int)](https://developer.android.com/reference/androidx/appcompat/app/AppCompatDelegate#setDefaultNightMode(int))可以设置深色模式，源码如下：
 
@@ -496,7 +496,38 @@ Glide.with(this)
 
 看到这里可能会有人有疑问，对于大型的项目而言，里面已经hardcore了很多的颜色值，并且很多图片都没有设计成深色模式的，那做深色模式适配是不是一个不可能完成的任务呢？答案是否定的。对于大型项目而言，除了对所有的颜色和图片定义`night`资源的自动适配方法外，我们还可以对使用`Light`风格主题的页面进行进行**强制深色模式转换**。
 
+我们可以分别对主题和View设置强制深色模式。对于主题，在`Light`主题中设置`android:forceDarkAllowed`，例如：
 
+```xml
+<style name="LightAppTheme" parent="Theme.MaterialComponents.Light.NoActionBar.Bridge">
+	<!-- ... -->
+  <item name="android:forceDarkAllowed">true</item>
+</style>
+```
+
+对于View，设置[View.setForceDarkAllowed(boolean)](https://developer.android.com/reference/android/view/View#setForceDarkAllowed(boolean))或者xml来设置是否支持Force Dark，默认值是true。
+
+```xml
+<View
+  android:layout_width="wrap_content"
+  android:layout_height="wrap_content"
+  android:forceDarkAllowed="false"/>
+```
+
+这里需要注意的是，Force Dark的设置有以下几个规则：
+
+1. 主题设置的Force Dark仅对`Light`的主题有效，对非`Light`的主题不管是设置`android:forceDarkAllowed`为`true`或者设置`View.setForceDarkAllowed(true)`都是无效的。
+2. 父节点设置了不支持Force Dark，那么子节点再设置支持Force Dark无效。例如主题设置了`android:forceDarkAllowed`为`false`，则View设置`View.setForceDarkAllowed(true)`无效。同样的，如果View本身设置了支持Force Dark，但是其父layout设置了不支持，那么该View不会执行Force Dark
+3. 子节点设置不支持Force Dark不受父节点设置支持Force Dark影响。例如View设置了支持Force Dark，但是其子Layout设置了不支持，那么子Layout也不会执行Force Dark。
+
+*Tips：View 的 Force Dark设置一般会设置成 false，用于排除某些已经适配了深色模式的 View。*
+下面我们从源码出发来理解Force Dark的这些行为，以及看看系统是怎么实现Force Dark的。
+
+#### 1. 主题
+
+
+
+#### 2. View
 
 ## 项目指导
 
