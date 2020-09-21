@@ -556,7 +556,7 @@ private void updateForceDarkMode() {
 }
 ```
 
-而这个方法正式在`ViewRootImpl.enableHardwareAcceleration()`方法中调用的，因此可以得到第一个结论：**强制深色模式只在硬件加速下才能生效**。直到这一步的调用链如下：
+而这个方法正式在`ViewRootImpl.enableHardwareAcceleration()`方法中调用的，因此可以得到第一个结论：**强制深色模式只在硬件加速下生效**。由于`userAutoDark`变量会判断当前主题是否为浅色，因此可以得到第二个结论：**强制深色模式只在浅色主题下生效**。直到这一步的调用链如下：
 
 ```mermaid
 sequenceDiagram
@@ -655,57 +655,45 @@ TreeInfo::TreeInfo(TraversalMode mode, renderthread::CanvasContext& canvasContex
 int disableForceDark;
 ```
 
-到了这里，可以看出，当设置了Force Dark之后，最终会设置到`TreeInfo`类中的`disableForceDark`变量，如果没有设置主题的Force Dark，那么根据false的默认值，变量会别设置成1，如果设置了使用强制深色模式，那么`disableForceDark`会变成0
+到了这里，可以看出，当设置了Force Dark之后，最终会设置到`TreeInfo`类中的`disableForceDark`变量，如果没有设置主题的Force Dark，那么根据false的默认值，`disableForceDark`变量会别设置成1，如果设置了使用强制深色模式，那么`disableForceDark`会变成0。
 
-这个变量最终会用在Render的过程中：
+这个变量最终会用在RenderNode的`RenderNode.handleForceDark()`过程中，到达的流程如下图：
+
+```mermaid
+sequenceDiagram
+    ViewRootImpl->>ViewRootImpl: draw()
+    ViewRootImpl->>ThreadedRenderer: draw()
+    ThreadedRenderer->>HardwareRenderer: syncAndDrawFrame()
+    HardwareRenderer->>RenderProxy: JNI调用-syncAndDrawFrame()
+    RenderProxy->>DrawFrameTask: drawFrame()
+    DrawFrameTask->>DrawFrameTask: postAndWait()
+    DrawFrameTask->>DrawFrameTask: run()
+    DrawFrameTask->>DrawFrameTask: syncFrameState()
+    DrawFrameTask->>CanvasContext: prepareTree()
+    CanvasContext->>RenderNode: prepareTree()
+    RenderNode->>RenderNode: prepareTreeImpl()
+    RenderNode->>RenderNode: pushStagingDisplayListChanges()
+    RenderNode->>RenderNode: syncDisplayList()
+    RenderNode->>RenderNode: handleForceDark()
+```
+
+#### 
 
   **[frameworks/base/libs/hwui/RenderNode.cpp](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/RenderNode.cpp;l=235;drc=master;bpv=0;bpt=1)**
 
 ```c++
-/**
- * Traverse down the the draw tree to prepare for a frame.
- *
- * MODE_FULL = UI Thread-driven (thus properties must be synced), otherwise RT driven
- *
- * While traversing down the tree, functorsNeedLayer flag is set to true if anything that uses the
- * stencil buffer may be needed. Views that use a functor to draw will be forced onto a layer.
- */
 void RenderNode::prepareTreeImpl(TreeObserver& observer, TreeInfo& info, bool functorsNeedLayer) {
-    if (mDamageGenerationId == info.damageGenerationId) {
-        // We hit the same node a second time in the same tree. We don't know the minimal
-        // damage rect anymore, so just push the biggest we can onto our parent's transform
-        // We push directly onto parent in case we are clipped to bounds but have moved position.
-        info.damageAccumulator->dirty(DIRTY_MIN, DIRTY_MIN, DIRTY_MAX, DIRTY_MAX);
-    }
-    info.damageAccumulator->pushTransform(this);
-
+    // ...
+    // 同步正在处理的RenderNode Property变化
     if (info.mode == TreeInfo::MODE_FULL) {
         pushStagingPropertiesChanges(info);
     }
-
+    // 如果当前View不允许被ForceDark，那么info.disableForceDark值+1
     if (!mProperties.getAllowForceDark()) {
         info.disableForceDark++;
     }
-
-    uint32_t animatorDirtyMask = 0;
-    if (CC_LIKELY(info.runAnimations)) {
-        animatorDirtyMask = mAnimatorManager.animate(info);
-    }
-
-    bool willHaveFunctor = false;
-    if (info.mode == TreeInfo::MODE_FULL && mStagingDisplayList) {
-        willHaveFunctor = mStagingDisplayList->hasFunctor();
-    } else if (mDisplayList) {
-        willHaveFunctor = mDisplayList->hasFunctor();
-    }
-    bool childFunctorsNeedLayer =
-            mProperties.prepareForFunctorPresence(willHaveFunctor, functorsNeedLayer);
-
-    if (CC_UNLIKELY(mPositionListener.get())) {
-        mPositionListener->onPositionUpdated(*this, info);
-    }
-
-    prepareLayer(info, animatorDirtyMask);
+    // ...
+    // 同步正在处理的Render Node的Display List，实现具体深色的逻辑
     if (info.mode == TreeInfo::MODE_FULL) {
         pushStagingDisplayListChanges(observer, info);
     }
@@ -716,6 +704,13 @@ void RenderNode::prepareTreeImpl(TreeObserver& observer, TreeInfo& info, bool fu
                 observer, info, childFunctorsNeedLayer,
                 [](RenderNode* child, TreeObserver& observer, TreeInfo& info,
                    bool functorsNeedLayer) {
+                    // 递归调用子节点的prepareTreeImpl。
+                    // 递归调用之前，若父节点不允许强制深色模式，disableForceDark已经不为0，
+                    //     子节点再设置允许强制深色模式不会使得disableForceDark的值减少，
+                    //     因此有第三个规则：父节点设置了不允许深色模式，子节点再设置允许深色模式无效。
+                    // 同样的，递归调用之前，若父节点允许深色模式，disableForceDark为0，
+                    //     子节点再设置不允许强制深色模式，则disableForceDark值还是会++，不为0
+                    //     因此有第四个规则：子节点设置不允许强制深色模式不受父节点设置允许强制深色模式影响。
                     child->prepareTreeImpl(observer, info, functorsNeedLayer);
                 });
         if (isDirty) {
@@ -723,15 +718,76 @@ void RenderNode::prepareTreeImpl(TreeObserver& observer, TreeInfo& info, bool fu
         }
     }
     pushLayerUpdate(info);
-
+    // 递归结束后将之前设置过+1的值做回退-1恢复操作，避免影响其他兄弟结点的深色模式值判断
     if (!mProperties.getAllowForceDark()) {
         info.disableForceDark--;
     }
     info.damageAccumulator->popTransform();
 }
+
+void RenderNode::pushStagingDisplayListChanges(TreeObserver& observer, TreeInfo& info) {
+    // ...
+    // 同步DisplayList
+    syncDisplayList(observer, &info);
+    // ...
+}
+
+void RenderNode::syncDisplayList(TreeObserver& observer, TreeInfo* info) {
+    // ...
+    if (mDisplayList) {
+        WebViewSyncData syncData {
+            // 设置WebViewSyncData的applyForceDark
+            .applyForceDark = info && !info->disableForceDark
+        };
+        mDisplayList->syncContents(syncData);
+        // 强制执行深色模式执行
+        handleForceDark(info);
+    }
+}
+
+void RenderNode::handleForceDark(android::uirenderer::TreeInfo *info) {
+    if (CC_LIKELY(!info || info->disableForceDark)) {
+        // 如果disableForceDark不为0，关闭强制深色模式，则直接返回
+        return;
+    }
+    auto usage = usageHint();
+    const auto& children = mDisplayList->mChildNodes;
+    // 如果有文字表示是前景策略
+    if (mDisplayList->hasText()) {
+        usage = UsageHint::Foreground;
+    }
+    if (usage == UsageHint::Unknown) {
+        // 如果子节点大于1或者第一个子节点不是背景，那么设置为背景策略
+        if (children.size() > 1) {
+            usage = UsageHint::Background;
+        } else if (children.size() == 1 &&
+                children.front().getRenderNode()->usageHint() !=
+                        UsageHint::Background) {
+            usage = UsageHint::Background;
+        }
+    }
+    if (children.size() > 1) {
+        // Crude overlap check
+        SkRect drawn = SkRect::MakeEmpty();
+        for (auto iter = children.rbegin(); iter != children.rend(); ++iter) {
+            const auto& child = iter->getRenderNode();
+            // We use stagingProperties here because we haven't yet sync'd the children
+            SkRect bounds = SkRect::MakeXYWH(child->stagingProperties().getX(), child->stagingProperties().getY(),
+                    child->stagingProperties().getWidth(), child->stagingProperties().getHeight());
+            if (bounds.contains(drawn)) {
+                // This contains everything drawn after it, so make it a background
+                child->setUsageHint(UsageHint::Background);
+            }
+            drawn.join(bounds);
+        }
+    }
+    // 根据前景还是背景策略对颜色进行提亮或者加深
+    mDisplayList->mDisplayList.applyColorTransform(
+            usage == UsageHint::Background ? ColorTransform::Dark : ColorTransform::Light);
+}
 ```
 
-
+*Tips：View的绘制会根据VSYNC信号，将UI线程的Display List树同步到Render线程的Display List树，并通过生产者消费者模式将layout信息放置到SurfaceFlinger中，并最后交给Haredware Composer进行合成绘制。具体View渲染逻辑见参考章节的15~19文章列表。*
 
 #### 2. View
 
@@ -833,4 +889,5 @@ Bridge
 16. [Android应用程序UI硬件加速渲染的Display List构建过程分析](https://blog.csdn.net/luoshengyang/article/details/45943255)
 17. [Android应用程序UI硬件加速渲染的Display List渲染过程分析](https://blog.csdn.net/Luoshengyang/article/details/46281499)
 18. [Drawn out: how Android renders (Google I/O '18)](https://www.youtube.com/watch?v=zdQRIYOST64&ab_channel=AndroidDevelopers)
+19. [深入理解Android的渲染机制](https://www.yuque.com/beesx/beesandroid/qh7ohm#NkEJZ)
 
