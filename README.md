@@ -516,14 +516,220 @@ Glide.with(this)
 
 这里需要注意的是，Force Dark的设置有以下几个规则：
 
-1. 主题设置的Force Dark仅对`Light`的主题有效，对非`Light`的主题不管是设置`android:forceDarkAllowed`为`true`或者设置`View.setForceDarkAllowed(true)`都是无效的。
-2. 父节点设置了不支持Force Dark，那么子节点再设置支持Force Dark无效。例如主题设置了`android:forceDarkAllowed`为`false`，则View设置`View.setForceDarkAllowed(true)`无效。同样的，如果View本身设置了支持Force Dark，但是其父layout设置了不支持，那么该View不会执行Force Dark
-3. 子节点设置不支持Force Dark不受父节点设置支持Force Dark影响。例如View设置了支持Force Dark，但是其子Layout设置了不支持，那么子Layout也不会执行Force Dark。
+1. 要强制深色模式生效必须开启硬件加速（默认开启）
+2. 主题设置的Force Dark仅对`Light`的主题有效，对非`Light`的主题不管是设置`android:forceDarkAllowed`为`true`或者设置`View.setForceDarkAllowed(true)`都是无效的。
+3. 父节点设置了不支持Force Dark，那么子节点再设置支持Force Dark无效。例如主题设置了`android:forceDarkAllowed`为`false`，则View设置`View.setForceDarkAllowed(true)`无效。同样的，如果View本身设置了支持Force Dark，但是其父layout设置了不支持，那么该View不会执行Force Dark
+4. 子节点设置不支持Force Dark不受父节点设置支持Force Dark影响。例如View设置了支持Force Dark，但是其子Layout设置了不支持，那么子Layout也不会执行Force Dark。
 
-*Tips：View 的 Force Dark设置一般会设置成 false，用于排除某些已经适配了深色模式的 View。*
+*Tips：一个比较容易记的规则就是不支持Force Dark优先，View 的 Force Dark设置一般会设置成 false，用于排除某些已经适配了深色模式的 View。*
 下面我们从源码出发来理解Force Dark的这些行为，以及看看系统是怎么实现Force Dark的。
 
+*Tips：善用 https://cs.android.com/ 源码搜索网站可以方便查看系统源码。*
+
 #### 1. 主题
+
+从主题设置的`forceDarkAllowed`入手查找，可以找到
+
+  **[frameworks/base/core/java/android/view/ViewRootImpl.java](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/android/view/ViewRootImpl.java?q=forceDarkAllowed&ss=android%2Fplatform%2Fsuperproject)**
+
+```java
+private void updateForceDarkMode() {
+  if (mAttachInfo.mThreadedRenderer == null) return;
+  // 判断当前是否深色模式
+  boolean useAutoDark = getNightMode() == Configuration.UI_MODE_NIGHT_YES;
+  // 如果当前是深色模式
+  if (useAutoDark) {
+    // 获取Force Dark的系统默认值
+    boolean forceDarkAllowedDefault =
+      SystemProperties.getBoolean(ThreadedRenderer.DEBUG_FORCE_DARK, false);
+    TypedArray a = mContext.obtainStyledAttributes(R.styleable.Theme);
+    // 判断主题是否浅色主题 并且 判断主题设置的forceDarkAllowed
+    useAutoDark = a.getBoolean(R.styleable.Theme_isLightTheme, true)
+      && a.getBoolean(R.styleable.Theme_forceDarkAllowed, forceDarkAllowedDefault);
+    a.recycle();
+  }
+  // 将是否强制使用深色模式赋值给Renderer层
+  if (mAttachInfo.mThreadedRenderer.setForceDark(useAutoDark)) {
+    // TODO: Don't require regenerating all display lists to apply this setting
+    invalidateWorld(mView);
+  }
+}
+```
+
+而这个方法正式在`ViewRootImpl.enableHardwareAcceleration()`方法中调用的，因此可以得到第一个结论：**强制深色模式只在硬件加速下才能生效**。直到这一步的调用链如下：
+
+```mermaid
+sequenceDiagram
+    ActivityThread->>ActivityThread: handleResumeActivity()
+    ActivityThread->>WindowManagerGlobal:addView()
+    WindowManagerGlobal->>ViewRootImpl:setView()
+    ViewRootImpl->>ViewRootImpl: enableHardwareAcceleration()
+    ViewRootImpl->>ViewRootImpl: updateForceDarkMode()
+```
+
+`mAttachInfo.mThreadedRenderer`为`ThreadRenderer`，继承自`HardwareRenderer`，指定了接下来的渲染操作由RanderThread执行。继续跟踪`setForceDark()`方法：
+
+  **[frameworks/base/graphics/java/android/graphics/HardwareRenderer.java](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/graphics/java/android/graphics/HardwareRenderer.java;drc=master;l=523)**
+
+```java
+public boolean setForceDark(boolean enable) {
+  // 如果强制深色模式变化
+  if (mForceDark != enable) {
+    mForceDark = enable;
+    // 调用native层设置强制深色模式逻辑
+    nSetForceDark(mNativeProxy, enable);
+    return true;
+  }
+  return false;
+}
+
+private static native void nSetForceDark(long nativeProxy, boolean enabled);
+```
+
+查找`nSetForceDark()`方法
+
+  **[frameworks/base/libs/hwui/jni/android_graphics_HardwareRenderer.cpp](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/jni/android_graphics_HardwareRenderer.cpp?q=nSetForceDark&ss=android%2Fplatform%2Fsuperproject)**
+
+```cpp
+static const JNINativeMethod gMethods[] = {
+		// ... 
+    // 在Android Runtime启动时，通过JNI动态注册
+    { "nSetForceDark", "(JZ)V", (void*)android_view_ThreadedRenderer_setForceDark },
+    { "preload", "()V", (void*)android_view_ThreadedRenderer_preload },
+};
+```
+
+查找`android_view_ThreadedRenderer_setForceDark()`方法
+
+  **[frameworks/base/libs/hwui/jni/android_graphics_HardwareRenderer.cpp](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/jni/android_graphics_HardwareRenderer.cpp;l=586;bpv=1;bpt=1?q=android_view_ThreadedRenderer_setForceDark&sq=&ss=android%2Fplatform%2Fsuperproject)**
+
+```cpp
+static void android_view_ThreadedRenderer_setForceDark(JNIEnv* env, jobject clazz,
+        jlong proxyPtr, jboolean enable) {
+    RenderProxy* proxy = reinterpret_cast<RenderProxy*>(proxyPtr);
+    // 调用RenderProxy的setForceDark方法
+    proxy->setForceDark(enable);
+}
+```
+
+  **[frameworks/base/libs/hwui/renderthread/RenderProxy.cpp](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/renderthread/RenderProxy.cpp;drc=master;bpv=1;bpt=1;l=308)**
+
+```cpp
+void RenderProxy::setForceDark(bool enable) {
+		// 调用CanvasContext的setForceDark方法
+    mRenderThread.queue().post([this, enable]() { mContext->setForceDark(enable); });
+}
+```
+
+  **[frameworks/base/libs/hwui/renderthread/CanvasContext.h](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/renderthread/CanvasContext.h;drc=master;bpv=1;bpt=1;l=189)**
+
+```cpp
+// Force Dark的默认值是false
+bool mUseForceDark = false;
+// 设置mUseForceDark标志
+void setForceDark(bool enable) { mUseForceDark = enable; }
+bool useForceDark() {
+  return mUseForceDark;
+}
+```
+
+接着查找调用`userForceDark()`方法的地方
+
+  **[frameworks/base/libs/hwui/TreeInfo.cpp](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/TreeInfo.cpp;l=27;drc=master;bpv=0;bpt=1)**
+
+```cpp
+TreeInfo::TreeInfo(TraversalMode mode, renderthread::CanvasContext& canvasContext)
+        : mode(mode)
+        , prepareTextures(mode == MODE_FULL)
+        , canvasContext(canvasContext)
+        // 设置disableForceDark变量
+        , disableForceDark(canvasContext.useForceDark() ? 0 : 1)
+        , screenSize(canvasContext.getNextFrameSize()) {}
+
+}  // namespace android::uirenderer
+```
+
+  **[frameworks/base/libs/hwui/TreeInfo.h](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/TreeInfo.h;drc=master;bpv=0;bpt=1;l=97)**
+
+```cpp
+int disableForceDark;
+```
+
+到了这里，可以看出，当设置了Force Dark之后，最终会设置到`TreeInfo`类中的`disableForceDark`变量，如果没有设置主题的Force Dark，那么根据false的默认值，变量会别设置成1，如果设置了使用强制深色模式，那么`disableForceDark`会变成0
+
+这个变量最终会用在Render的过程中：
+
+  **[frameworks/base/libs/hwui/RenderNode.cpp](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/RenderNode.cpp;l=235;drc=master;bpv=0;bpt=1)**
+
+```c++
+/**
+ * Traverse down the the draw tree to prepare for a frame.
+ *
+ * MODE_FULL = UI Thread-driven (thus properties must be synced), otherwise RT driven
+ *
+ * While traversing down the tree, functorsNeedLayer flag is set to true if anything that uses the
+ * stencil buffer may be needed. Views that use a functor to draw will be forced onto a layer.
+ */
+void RenderNode::prepareTreeImpl(TreeObserver& observer, TreeInfo& info, bool functorsNeedLayer) {
+    if (mDamageGenerationId == info.damageGenerationId) {
+        // We hit the same node a second time in the same tree. We don't know the minimal
+        // damage rect anymore, so just push the biggest we can onto our parent's transform
+        // We push directly onto parent in case we are clipped to bounds but have moved position.
+        info.damageAccumulator->dirty(DIRTY_MIN, DIRTY_MIN, DIRTY_MAX, DIRTY_MAX);
+    }
+    info.damageAccumulator->pushTransform(this);
+
+    if (info.mode == TreeInfo::MODE_FULL) {
+        pushStagingPropertiesChanges(info);
+    }
+
+    if (!mProperties.getAllowForceDark()) {
+        info.disableForceDark++;
+    }
+
+    uint32_t animatorDirtyMask = 0;
+    if (CC_LIKELY(info.runAnimations)) {
+        animatorDirtyMask = mAnimatorManager.animate(info);
+    }
+
+    bool willHaveFunctor = false;
+    if (info.mode == TreeInfo::MODE_FULL && mStagingDisplayList) {
+        willHaveFunctor = mStagingDisplayList->hasFunctor();
+    } else if (mDisplayList) {
+        willHaveFunctor = mDisplayList->hasFunctor();
+    }
+    bool childFunctorsNeedLayer =
+            mProperties.prepareForFunctorPresence(willHaveFunctor, functorsNeedLayer);
+
+    if (CC_UNLIKELY(mPositionListener.get())) {
+        mPositionListener->onPositionUpdated(*this, info);
+    }
+
+    prepareLayer(info, animatorDirtyMask);
+    if (info.mode == TreeInfo::MODE_FULL) {
+        pushStagingDisplayListChanges(observer, info);
+    }
+
+    if (mDisplayList) {
+        info.out.hasFunctors |= mDisplayList->hasFunctor();
+        bool isDirty = mDisplayList->prepareListAndChildren(
+                observer, info, childFunctorsNeedLayer,
+                [](RenderNode* child, TreeObserver& observer, TreeInfo& info,
+                   bool functorsNeedLayer) {
+                    child->prepareTreeImpl(observer, info, functorsNeedLayer);
+                });
+        if (isDirty) {
+            damageSelf(info);
+        }
+    }
+    pushLayerUpdate(info);
+
+    if (!mProperties.getAllowForceDark()) {
+        info.disableForceDark--;
+    }
+    info.damageAccumulator->popTransform();
+}
+```
 
 
 
@@ -623,4 +829,8 @@ Bridge
 12. [OPPO 暗色模式适配说明](https://open.oppomobile.com/wiki/doc#id=10658)
 13. [Android Q深色模式源码解析](https://www.jianshu.com/p/5005969bf37a)
 14. [Moving to the Dark Side: Dark Theme Recap](https://proandroiddev.com/android-dark-theme-implementation-recap-4fcffb0c4bff)
+15. [Android应用程序UI硬件加速渲染环境初始化过程分析](https://blog.csdn.net/luoshengyang/article/details/45769759)
+16. [Android应用程序UI硬件加速渲染的Display List构建过程分析](https://blog.csdn.net/luoshengyang/article/details/45943255)
+17. [Android应用程序UI硬件加速渲染的Display List渲染过程分析](https://blog.csdn.net/Luoshengyang/article/details/46281499)
+18. [Drawn out: how Android renders (Google I/O '18)](https://www.youtube.com/watch?v=zdQRIYOST64&ab_channel=AndroidDevelopers)
 
