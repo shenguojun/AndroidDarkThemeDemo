@@ -652,7 +652,12 @@ TreeInfo::TreeInfo(TraversalMode mode, renderthread::CanvasContext& canvasContex
   **[frameworks/base/libs/hwui/TreeInfo.h](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/TreeInfo.h;drc=master;bpv=0;bpt=1;l=97)**
 
 ```cpp
-int disableForceDark;
+class TreeInfo {
+public:
+    // ...
+    int disableForceDark;
+    // ...
+};
 ```
 
 到了这里，可以看出，当设置了Force Dark之后，最终会设置到`TreeInfo`类中的`disableForceDark`变量，如果没有设置主题的Force Dark，那么根据false的默认值，`disableForceDark`变量会别设置成1，如果设置了使用强制深色模式，那么`disableForceDark`会变成0。
@@ -1056,6 +1061,124 @@ static BitmapPalette filterPalette(const SkPaint* paint, BitmapPalette palette) 
 
 #### 2. View
 
+无论是设置View的xml的`android:forceDarkAllowed`属性，还是调用`View.setForceDarkAllowed()`最后还是调用到[frameworks/base/core/java/android/view/View.java](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/android/view/View.java?q=setForceDarkAllowed)的`mRenderNode.setForceDarkAllowed()`方法。
+
+   **[frameworks/base/graphics/java/android/graphics/RenderNode.java](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/graphics/java/android/graphics/RenderNode.java;drc=master;l=1414)**
+
+```java
+public boolean setForceDarkAllowed(boolean allow) {
+  return nSetAllowForceDark(mNativeRenderNode, allow);
+}
+```
+
+`nSetAllowForceDark`通过JNI调用到`android_view_RenderNode_setAllowForceDark`Navtive方法中。
+
+   **[frameworks/base/libs/hwui/jni/android_graphics_RenderNode.cpp](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/jni/android_graphics_RenderNode.cpp;l=744?q=nSetAllowForceDark&ss=android%2Fplatform%2Fsuperproject)**
+
+```cpp
+static const JNINativeMethod gMethods[] = {
+  // ...
+  { "nSetAllowForceDark",        "(JZ)Z", (void*) android_view_RenderNode_setAllowForceDark },
+  // ...
+};
+
+static jboolean android_view_RenderNode_setAllowForceDark(CRITICAL_JNI_PARAMS_COMMA jlong renderNodePtr, jboolean allow) {
+    return SET_AND_DIRTY(setAllowForceDark, allow, RenderNode::GENERIC);
+}
+
+#define SET_AND_DIRTY(prop, val, dirtyFlag) \
+    (reinterpret_cast<RenderNode*>(renderNodePtr)->mutateStagingProperties().prop(val) \
+        ? (reinterpret_cast<RenderNode*>(renderNodePtr)->setPropertyFieldsDirty(dirtyFlag), true) \
+        : false)
+```
+
+最后这个是否允许深色模式的`allow`变量被设置到`RenderProperties.h` 中
+
+  **[frameworks/base/libs/hwui/RenderProperties.h](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/RenderProperties.h;l=553;drc=master)**
+
+```cpp
+/*
+ * Data structure that holds the properties for a RenderNode
+ */
+class ANDROID_API RenderProperties {
+public:
+    // ...
+    // 设置View是否允许强制深色模式
+    bool setAllowForceDark(bool allow) {
+        return RP_SET(mPrimitiveFields.mAllowForceDark, allow);
+    }
+    // 获取View是否允许强制深色模式
+    bool getAllowForceDark() const {
+        return mPrimitiveFields.mAllowForceDark;
+    }
+    // ...
+private:
+    // Rendering properties
+    struct PrimitiveFields {
+        // ...
+        // 默认值为true
+        bool mAllowForceDark = true;
+        // ...
+    } mPrimitiveFields;
+```
+
+我们回头看下上面分析过的`RenderNode.cpp`的`prepareTreeImpl`流程
+
+  **[frameworks/base/libs/hwui/RenderNode.cpp](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/RenderNode.cpp;l=235;drc=master;bpv=0;bpt=1)**
+
+```cpp
+// 经过了简化处理的prepareTreeImpl逻辑
+void RenderNode::prepareTreeImpl(TreeObserver& observer, TreeInfo& info) {
+    // 如果当前View不允许被ForceDark，那么info.disableForceDark值+1
+    if (!mProperties.getAllowForceDark()) {
+        info.disableForceDark++;
+    }
+
+    // 同步正在处理的Render Node的Display List，实现具体深色的逻辑
+    pushStagingDisplayListChanges(observer, info);
+
+    mDisplayList->prepareListAndChildren([](RenderNode* child, TreeObserver& observer, TreeInfo& info) {
+        // 递归调用子节点的prepareTreeImpl。
+        // 递归调用之前，若父节点不允许强制深色模式，disableForceDark已经不为0，
+        //     子节点再设置允许强制深色模式不会使得disableForceDark的值减少，
+        //     因此有第三个规则：父节点设置了不允许深色模式，子节点再设置允许深色模式无效。
+        // 同样的，递归调用之前，若父节点允许深色模式，disableForceDark为0，
+        //     子节点再设置不允许强制深色模式，则disableForceDark值还是会++，不为0
+        //     因此有第四个规则：子节点设置不允许强制深色模式不受父节点设置允许强制深色模式影响。
+        child->prepareTreeImpl(observer, info);
+      });
+    
+    // 递归结束后将之前设置过+1的值做回退-1恢复操作，避免影响其他兄弟结点的深色模式值判断
+    if (!mProperties.getAllowForceDark()) {
+        info.disableForceDark--;
+    }
+}
+```
+
+可以看出，设置View的`forceDarkAllowed`最终会设置到当前`RenderNode`的`mProperties.allowForceDark`属性中，并在`RenderNode`遍历的过程中影响深色模式的执行。
+
+我们可以以下面的伪代码来更直观地了解深色模式执行的流程：
+
+```java
+// 深色模式渲染伪代码
+int disableDark = if (themeAllowDark) 0 else 1;
+
+void RenderNode(Node node) {
+  if (!node.allowDark) {
+    disableDark++;
+  }
+  if (disableDark == 0) forceDarkCurrentNode();
+  for (child : node.children) {
+    RenderNode(child)
+  }
+  if (!node.allowDark) {
+    disableDark--;
+  }
+}
+```
+
+至此，我们分析完所有强制深色模式的原理。**总结一下，主题默认不会强制深色，若主题设置了强制深色，则遍历View树对其节点进行强制深色转换。碰到某个View不希望被强制深色，则包括它和它的所有子节点都不会被强制深色。**
+
 ## 项目指导
 
 ### 旧项目改造
@@ -1155,4 +1278,6 @@ Bridge
 17. [Android应用程序UI硬件加速渲染的Display List渲染过程分析](https://blog.csdn.net/Luoshengyang/article/details/46281499)
 18. [Drawn out: how Android renders (Google I/O '18)](https://www.youtube.com/watch?v=zdQRIYOST64&ab_channel=AndroidDevelopers)
 19. [深入理解Android的渲染机制](https://www.yuque.com/beesx/beesandroid/qh7ohm#NkEJZ)
+20. [SKIA api](https://api.skia.org/)
+21. [Android Code Search](https://cs.android.com/)
 
