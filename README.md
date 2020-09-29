@@ -677,8 +677,6 @@ sequenceDiagram
     RenderNode->>RenderNode: handleForceDark()
 ```
 
-#### 
-
   **[frameworks/base/libs/hwui/RenderNode.cpp](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/RenderNode.cpp;l=235;drc=master;bpv=0;bpt=1)**
 
 ```c++
@@ -787,7 +785,274 @@ void RenderNode::handleForceDark(android::uirenderer::TreeInfo *info) {
 }
 ```
 
-*Tips：View的绘制会根据VSYNC信号，将UI线程的Display List树同步到Render线程的Display List树，并通过生产者消费者模式将layout信息放置到SurfaceFlinger中，并最后交给Haredware Composer进行合成绘制。具体View渲染逻辑见参考章节的15~19文章列表。*
+*Tips：View的绘制会根据VSYNC信号，将UI线程的Display List树同步到Render线程的Display List树，并通过生产者消费者模式将layout信息放置到SurfaceFlinger中，并最后交给Haredware Composer进行合成绘制。具体View渲染逻辑见参考章节的15~19文章列表。* 
+
+ **[frameworks/base/libs/hwui/RecordingCanvas.cpp](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/RecordingCanvas.cpp;l=800;drc=master)**
+
+```cpp
+void DisplayListData::applyColorTransform(ColorTransform transform) {
+    // 使用transform作为参数执行color_transform_fns函数组
+    this->map(color_transform_fns, transform);
+}
+
+template <typename Fn, typename... Args>
+inline void DisplayListData::map(const Fn fns[], Args... args) const {
+    auto end = fBytes.get() + fUsed;
+    // 遍历需要绘制的元素op，并调用对应类型的colorTransformForOp函数
+    for (const uint8_t* ptr = fBytes.get(); ptr < end;) {
+        auto op = (const Op*)ptr;
+        auto type = op->type;
+        auto skip = op->skip;
+        if (auto fn = fns[type]) {  // We replace no-op functions with nullptrs
+            fn(op, args...);        // to avoid the overhead of a pointless call.
+        }
+        ptr += skip;
+    }
+}
+
+typedef void (*color_transform_fn)(const void*, ColorTransform);
+
+#define X(T) colorTransformForOp<T>(),
+static const color_transform_fn color_transform_fns[] = {
+  // 相当于 colorTransformForOp<Flush>()
+  X(Flush)
+  X(Save)
+  X(Restore)
+  X(SaveLayer)
+  X(SaveBehind)
+  X(Concat44)
+  X(Concat)
+  X(SetMatrix)
+  X(Scale)
+  X(Translate)
+  X(ClipPath)
+  X(ClipRect)
+  X(ClipRRect)
+  X(ClipRegion)
+  X(DrawPaint)
+  X(DrawBehind)
+  X(DrawPath)
+  X(DrawRect)
+  X(DrawRegion)
+  X(DrawOval)
+  X(DrawArc)
+  X(DrawRRect)
+  X(DrawDRRect)
+  X(DrawAnnotation)
+  X(DrawDrawable)
+  X(DrawPicture)
+  X(DrawImage)
+  X(DrawImageNine)
+  X(DrawImageRect)
+  X(DrawImageLattice)
+  X(DrawTextBlob)
+  X(DrawPatch)
+  X(DrawPoints)
+  X(DrawVertices)
+  X(DrawAtlas)
+  X(DrawShadowRec)
+  X(DrawVectorDrawable)
+  X(DrawWebView)
+};
+#undef X
+
+struct DrawImage final : Op {
+    static const auto kType = Type::DrawImage;
+    DrawImage(sk_sp<const SkImage>&& image, SkScalar x, SkScalar y, const SkPaint* paint,
+              BitmapPalette palette)
+            : image(std::move(image)), x(x), y(y), palette(palette) {
+        if (paint) {
+            this->paint = *paint;
+        }
+    }
+    sk_sp<const SkImage> image;
+    SkScalar x, y;
+    // 这里SK指代skia库对象
+    SkPaint paint;
+    BitmapPalette palette;
+    void draw(SkCanvas* c, const SkMatrix&) const { c->drawImage(image.get(), x, y, &paint); }
+};
+
+template <class T>
+constexpr color_transform_fn colorTransformForOp() {
+    if
+        // 如果类型T有paint变量，并且有palette变量
+        constexpr(has_paint<T> && has_palette<T>) {
+            // It's a bitmap(绘制Bitmap)
+            // 例如对于一个DrawImage的OP，最终会调用到这里
+            // opRaw对应DrawImage对象，transform为ColorTransform::Dark或者ColorTransform::Light
+            return [](const void* opRaw, ColorTransform transform) {
+                // TODO: We should be const. Or not. Or just use a different map
+                // Unclear, but this is the quick fix
+                const T* op = reinterpret_cast<const T*>(opRaw);
+                transformPaint(transform, const_cast<SkPaint*>(&(op->paint)), op->palette);
+            };
+        }
+    else if
+        constexpr(has_paint<T>) {
+            return [](const void* opRaw, ColorTransform transform) {
+                // TODO: We should be const. Or not. Or just use a different map
+                // Unclear, but this is the quick fix
+                // 非Bitmap绘制
+                const T* op = reinterpret_cast<const T*>(opRaw);
+                transformPaint(transform, const_cast<SkPaint*>(&(op->paint)));
+            };
+        }
+    else {
+        return nullptr;
+    }
+}
+```
+
+   **[frameworks/base/libs/hwui/CanvasTransform.cpp](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/CanvasTransform.cpp;drc=master;bpv=1;bpt=1;l=132)**
+
+这里进行具体的颜色转换逻辑，我们首先关注非Bitmap绘制的颜色转换
+
+```cpp
+// 非Bitmap绘制颜色模式转换
+bool transformPaint(ColorTransform transform, SkPaint* paint) {
+    applyColorTransform(transform, *paint);
+    return true;
+}
+
+// 非Bitmap绘制颜色模式转换
+static void applyColorTransform(ColorTransform transform, SkPaint& paint) {
+    if (transform == ColorTransform::None) return;
+    // 具体绘制颜色转换逻辑
+    SkColor newColor = transformColor(transform, paint.getColor());
+    // 将画笔颜色修改为转换后的颜色
+    paint.setColor(newColor);
+
+    // 有渐变色情况
+    if (paint.getShader()) {
+        SkShader::GradientInfo info;
+        std::array<SkColor, 10> _colorStorage;
+        std::array<SkScalar, _colorStorage.size()> _offsetStorage;
+        info.fColorCount = _colorStorage.size();
+        info.fColors = _colorStorage.data();
+        info.fColorOffsets = _offsetStorage.data();
+        SkShader::GradientType type = paint.getShader()->asAGradient(&info);
+
+        if (info.fColorCount <= 10) {
+            switch (type) {
+                // 线性渐变并且渐变颜色少于等于10个的情况
+                case SkShader::kLinear_GradientType:
+                    for (int i = 0; i < info.fColorCount; i++) {
+                        // 对渐变色颜色进行转换
+                        info.fColors[i] = transformColor(transform, info.fColors[i]);
+                    }
+                    paint.setShader(SkGradientShader::MakeLinear(info.fPoint, info.fColors,
+                                                                 info.fColorOffsets, info.fColorCount,
+                                                                 info.fTileMode, info.fGradientFlags, nullptr));
+                    break;
+                default:break;
+            }
+
+        }
+    }
+
+    // 处理colorFilter
+    if (paint.getColorFilter()) {
+        SkBlendMode mode;
+        SkColor color;
+        // TODO: LRU this or something to avoid spamming new color mode filters
+        if (paint.getColorFilter()->asAColorMode(&color, &mode)) {
+            // 对colorFilter颜色进行转换
+            color = transformColor(transform, color);
+            paint.setColorFilter(SkColorFilters::Blend(color, mode));
+        }
+    }
+}
+
+static SkColor transformColor(ColorTransform transform, SkColor color) {
+    switch (transform) {
+        case ColorTransform::Light:
+            return makeLight(color);
+        case ColorTransform::Dark:
+            return makeDark(color);
+        default:
+            return color;
+    }
+}
+
+// 前景色变亮
+static SkColor makeLight(SkColor color) {
+    // 将sRGB色彩模式转换成Lab色彩模式
+    Lab lab = sRGBToLab(color);
+    // 对亮度L维度取反
+    float invertedL = std::min(110 - lab.L, 100.0f);
+    if (invertedL > lab.L) {
+        // 若取反后亮度变亮，则替换原来亮度
+        lab.L = invertedL;
+        // 重新转换为sRGB模式
+        return LabToSRGB(lab, SkColorGetA(color));
+    } else {
+        return color;
+    }
+}
+
+// 后景色变暗
+static SkColor makeDark(SkColor color) {
+    // 将sRGB色彩模式转换成Lab色彩模式
+    Lab lab = sRGBToLab(color);
+    // 对亮度L维度取反
+    float invertedL = std::min(110 - lab.L, 100.0f);
+    if (invertedL < lab.L) {
+        // 若取反后亮度变暗，则替换原来亮度
+        lab.L = invertedL;
+        // 重新转换为sRGB模式
+        return LabToSRGB(lab, SkColorGetA(color));
+    } else {
+        return color;
+    }
+}
+```
+
+从代码中可以看出，深色模式应用之后，通过对sRGB色彩空间转换[Lab色彩空间](https://zh.wikipedia.org/wiki/Lab%E8%89%B2%E5%BD%A9%E7%A9%BA%E9%97%B4)，并对表示亮度的维度L进行取反，并判断取反后前景色是不是更亮，后景色是不是更暗，若是的话就替换为原来的L，并再重新转换为sRGB色彩空间，从而实现反色的效果。
+
+我们再来看对图片的强制深色模式处理：
+
+```cpp
+// Bitmap绘制颜色模式转换
+bool transformPaint(ColorTransform transform, SkPaint* paint, BitmapPalette palette) {
+    // 考虑加上filter之后图片的明暗
+    palette = filterPalette(paint, palette);
+    bool shouldInvert = false;
+    if (palette == BitmapPalette::Light && transform == ColorTransform::Dark) {
+        // 图片比较亮但是需要变暗
+        shouldInvert = true;
+    }
+    if (palette == BitmapPalette::Dark && transform == ColorTransform::Light) {
+        // 图片比较暗但是需要变亮
+        shouldInvert = true;
+    }
+    if (shouldInvert) {
+        SkHighContrastConfig config;
+        // 设置skia反转亮度的filter
+        config.fInvertStyle = SkHighContrastConfig::InvertStyle::kInvertLightness;
+        paint->setColorFilter(SkHighContrastFilter::Make(config)->makeComposed(paint->refColorFilter()));
+    }
+    return shouldInvert;
+}
+
+// 获取paint filter的palette值，若没有filter直接返回原来的palette
+static BitmapPalette filterPalette(const SkPaint* paint, BitmapPalette palette) {
+    // 如果没有filter color返回原来的palette
+    if (palette == BitmapPalette::Unknown || !paint || !paint->getColorFilter()) {
+        return palette;
+    }
+
+    SkColor color = palette == BitmapPalette::Light ? SK_ColorWHITE : SK_ColorBLACK;
+    // 获取filter color，并根据palette的明暗再叠加一层白色或者黑色
+    color = paint->getColorFilter()->filterColor(color);
+    // 根据将颜色转换为HSV空间，并返回是图片的亮度是亮还是暗
+    return paletteForColorHSV(color);
+}
+```
+
+从代码中可以看出，对于Bitmap类型的绘制，先判断原来绘制Bitmap的明暗度，如果原来绘制的图像较为明亮但是需要变暗，或者原来绘制的图像较为暗需要变明亮，则设置一个明亮度转换的filter到画笔paint中。
+
+至此，对于主题级别的强制深色转换原理已经非常清晰。**总结一下，就是需要对前景色变亮和背景色变暗，然后对于非Bitmap类型明暗变化采用的是将色值转换为Lab颜色空间进行明亮度转换，对于Bitmap类型的明暗变化采取设置亮度转换的filter进行。**
 
 #### 2. View
 
