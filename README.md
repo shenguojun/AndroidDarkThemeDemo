@@ -1,6 +1,6 @@
 [toc]
 
-![Hot Take: Dark Mode | The Ionic Blog](https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/dark-mode-hot-take.png)
+![Dark Mode](https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/dark-mode-hot-take.png)
 
 # Android Dark Theme in Action (Android深色模式实战)
 
@@ -118,7 +118,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 ## 适配方案
 
-### 自动适配
+### 自定义适配
 
 #### 1. 主题
 
@@ -246,7 +246,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 #### 2. 色值
 
-##### 主题自动切换颜色
+##### 主题切换颜色
 
 除了定义不同模式使用不同的主题，我们还可以对主题设置自定义的色值。在设置主题色值之前，我们先了解一下Android主题的颜色系统。
 
@@ -310,14 +310,14 @@ public static void setDefaultNightMode(@NightMode int mode) {
 </resources>
 ```
 
-##### 控件自动切换颜色
+##### 控件切换颜色
 
 同样的，我们可以在布局的XML文件中直接使用定义好的颜色值，例如
 
 ```xml
 <TextView 
       android:id="@+id/auto_color_text"
-      android:text="自动变色文字"
+      android:text="自定义变色文字"
       android:background="@drawable/bg_text"
       android:textColor="@color/color_text_0" />
 ```
@@ -331,7 +331,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 </shape>
 ```
 
-这样这个文字就会自动在深色模式中展示为黑底白字，在非深色模式中展示为白底黑字。
+这样这个文字就会在深色模式中展示为黑底白字，在非深色模式中展示为白底黑字。
 
 <img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200909170254174.png" alt="image-20200909170254174" style="zoom:50%;" />
 
@@ -359,7 +359,7 @@ auto_color_text.setTextColor(if (isNightMode()) {
 
 ##### 普通图片&Gif图片
 
-将图片分为明亮模式和深色模式两份，分别放置在`drawable-night-xxx`以及`drawable-xxx`文件夹中，并在view中直接使用即可，当深色模式切换时，会自动使用对应深色模式的资源。如下图所示：
+将图片分为明亮模式和深色模式两份，分别放置在`drawable-night-xxx`以及`drawable-xxx`文件夹中，并在view中直接使用即可，当深色模式切换时，会使用对应深色模式的资源。如下图所示：
 
 <img src="https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20200910101322619.png" alt="image-20200910101322619" style="zoom:50%;" />
 
@@ -494,7 +494,7 @@ Glide.with(this)
 
 ### Force Dark
 
-看到这里可能会有人有疑问，对于大型的项目而言，里面已经hardcore了很多的颜色值，并且很多图片都没有设计成深色模式的，那做深色模式适配是不是一个不可能完成的任务呢？答案是否定的。对于大型项目而言，除了对所有的颜色和图片定义`night`资源的自动适配方法外，我们还可以对使用`Light`风格主题的页面进行进行**强制深色模式转换**。
+看到这里可能会有人有疑问，对于大型的项目而言，里面已经hardcore了很多的颜色值，并且很多图片都没有设计成深色模式的，那做深色模式适配是不是一个不可能完成的任务呢？答案是否定的。对于大型项目而言，除了对所有的颜色和图片定义`night`资源的自定义适配方法外，我们还可以对使用`Light`风格主题的页面进行进行**强制深色模式转换**。
 
 我们可以分别对主题和View设置强制深色模式。对于主题，在`Light`主题中设置`android:forceDarkAllowed`，例如：
 
@@ -1183,7 +1183,7 @@ void RenderNode(Node node) {
 
 ### 旧项目改造
 
-上面提到的自动适配方案和Force Dark方案是否可以同时使用呢，答案是肯定的。下面我们来看对旧项目需要怎么一步步地进行改造，以及有哪些需要注意的问题。
+上面提到的自定义适配方案和Force Dark方案是否可以同时使用呢，答案是肯定的。下面我们来看对旧项目需要怎么一步步地进行改造，以及有哪些需要注意的问题。
 
 
 
@@ -1195,7 +1195,7 @@ Selector api 23以上
 
 ```kotlin
 not_define_night_color.setBackgroundColor(ContextCompat.getColor(this, R.color.color_main_1))
-        not_define_night_color.backgroundTintList = ContextCompat.getColorStateList(this, R.color.color_main_1_alpha_20)
+not_define_night_color.backgroundTintList = ContextCompat.getColorStateList(this, R.color.color_main_1_alpha_20)
 ```
 
 ```xml
@@ -1214,6 +1214,15 @@ not_define_night_color.setBackgroundColor(ContextCompat.getColor(this, R.color.c
         app:layout_constraintStart_toStartOf="parent" />
 ```
 
+  **src/main/res/color/color_main_1_alpha_20.xml**
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:alpha="0.5" android:color="@color/color_main_1"/>
+</selector>
+```
+
 
 
 #### 2. XML中设置图片
@@ -1228,9 +1237,9 @@ tint
 
 将主题复制一份到night文件夹中，并设置forcedark
 
-由于针对`night`资源的自动深色模式适配在Andorid10之前的版本就已经存在，但是Android10之前的版本没有ForceDark，因此适配了部分的`night`资源可能会导致只有部分页面或控件变成深色，为了避免这个问题，对于旧项目而言添加`night`资源需要指定资源的ap等级为29。
+由于针对`night`资源的自定义深色模式适配在Andorid10之前的版本就已经存在，但是Android10之前的版本没有ForceDark，因此适配了部分的`night`资源可能会导致只有部分页面或控件变成深色，为了避免这个问题，对于旧项目而言添加`night`资源需要指定资源的ap等级为29。
 
-ForceDark和`night`资源自动适配会产生叠加的效果，如果某些组件不希望被forcedark，那么需要单独设置`android:forceDarkAllowed="false"`
+ForceDark和`night`资源自定义适配会产生叠加的效果，如果某些组件不希望被forcedark，那么需要单独设置`android:forceDarkAllowed="false"`
 
 如果已经适配过night资源的空间，那么需要单独设置为`android:forceDarkAllowed="false"`
 
