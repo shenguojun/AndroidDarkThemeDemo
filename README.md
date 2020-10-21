@@ -355,6 +355,56 @@ auto_color_text.setTextColor(if (isNightMode()) {
 })
 ```
 
+##### 透明度处理
+
+我们可以将颜色设置到一个selector中，并将selector设置到drawable的shape color中，最后将这个drawable设置到background中。
+
+  **src/main/res/color/color_main_1_alpha_20.xml**
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:alpha="0.5" android:color="@color/color_main_1"/>
+</selector
+```
+
+  **src/main/res/drawable/bg_text.xml**
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/color_main_1_alpha_20" />
+</shape>
+```
+
+对于Api 23及以上，我们也可以对在设置背景的颜色的同时，设置带alpha的selector color到backgroundTint属性上。
+
+例如通过代码设置：
+
+```kotlin
+tv_1.setBackgroundColor(ContextCompat.getColor(this, R.color.color_main_1))
+tv_1.backgroundTintList = ContextCompat.getColorStateList(this, R.color.color_main_1_alpha_20)
+```
+
+通过Xml设置：
+
+```xml
+<TextView
+        android:id="@+id/tv_1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="50dp"
+        android:background="@color/color_main_1"
+        android:backgroundTint="@color/color_main_1_alpha_20"
+        android:padding="20dp"
+        android:text="@string/not_define_night_color"
+        android:textColor="@color/color_text_0"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+```
+
 #### 3. 图片&动画
 
 ##### 普通图片&Gif图片
@@ -649,7 +699,7 @@ TreeInfo::TreeInfo(TraversalMode mode, renderthread::CanvasContext& canvasContex
 }  // namespace android::uirenderer
 ```
 
-  **[frameworks/base/libs/hwui/TreeInfo.h](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/TreeInfo.h;drc=master;bpv=0;bpt=1;l=97)**
+e  **[frameworks/base/libs/hwui/TreeInfo.h](https://cs.android.com/android/platform/superproject/+/master:frameworks/base/libs/hwui/TreeInfo.h;drc=master;bpv=0;bpt=1;l=97)**
 
 ```cpp
 class TreeInfo {
@@ -1179,88 +1229,220 @@ void RenderNode(Node node) {
 
 至此，我们分析完所有强制深色模式的原理。**总结一下，主题默认不会强制深色，若主题设置了强制深色，则遍历View树对其节点进行强制深色转换。碰到某个View不希望被强制深色，则包括它和它的所有子节点都不会被强制深色。**
 
-## 项目指导
+
+
+## 项目指导（词典项目）
+
+查看项目指导之前，请先查阅上面的适配方案及原理介绍。
+
+
+
+### 新功能模块
+
+安卓词典9.0.4版本发布的功能需要合并**dev_dark_theme**分支再进行开发，9.0.4将发布深色模式功能。
+
+由于自定适配和ForceDark适配分别在Android8和Andorid10中生效，混合使用的话可能会造成页面有一部分深色样式一部分浅色样式的问题。**为了避免不同版本混合使用这两种适配方式带来的问题，所有自定义适配的资源都应该放置在带`-v29`的资源文件中！**
+
+> ***我们规定无论是自定义适配还是ForceDark适配，都应该只在Android10及以后的版本才能生效。***
+
+#### 使用自定义适配模式
+
+对于新项目和新模块，需要UI给出浅色和深色两套设计方案，并进行自定义适配。自定义适配需要遵循以下规则：
+
+1. 主题**不能**声明forceDarkAllowed，或显示声明forceDarkAllowed为**false**
+2. Xml的Layout和自定义View**必须**显示声明forceDarkAllowed为**fasle**
+3. Style主题使用DayNight，推荐使用`Theme.MaterialComponents.DayNight.*`，对于需自定义深色模式的主题，放置在`values-night-v29`文件夹中
+4. 自定义深色模式色值放到`values-night-v29`文件夹中，尽量使用已经在`lib_widget`模块中定义好深色模式的color_xxx色值
+5. 自定义深色模式的图片资源放到`drawable-night-xhdpi-v29`等带`-night-***-v29`文件中。
+6. 更多主题、色值、图片、动画等处理见【适配方案】->【自定义适配】
+
+#### 混合使用ForceDark适配
+
+**对于新项目和新模块，尽量避免使用ForceDark方式适配。**当且仅当项目紧急且UI来不及适配的情况下使用。如若使用ForceDark，需遵循下面规则：
+
+1. 一旦页面主题使用了ForceDark，则在ForceDark生效的页面对某些View的颜色或者图标进行微调的，需要将资源放置到带`-night-v29`后缀的文件中。
+
+2. 对需要ForceDark的主题显示声明forceDarkAllowed为**true**，需要对主题微调的话复制一份放到`values-night-v29`文件夹中进行修改。
+
+3. 需要对某个View微调的话，需要显示声明forceDarkAllowed为**false**，并在对应`-v29`的资源文件夹中定义深色模式资源。需要注意的是，当对某个View设置forceDarkAllowed为false时，其所有孩子View节点都需要进行自定义适配，孩子声明forceDarkAllowed为true将不再生效。
+
+   > ForceDark和`night`资源自定义适配会产生叠加的效果，如果某些组件已经使用了自定义资源，不希望被forcedark，那么需要单独设置`android:forceDarkAllowed="false"`
+
+
 
 ### 旧项目改造
 
-上面提到的自定义适配方案和Force Dark方案是否可以同时使用呢，答案是肯定的。下面我们来看对旧项目需要怎么一步步地进行改造，以及有哪些需要注意的问题。
+如果需要对9.0.4之前已经发布的功能进行深色模式适配，需要采用混合ForceDark适配方法，具体步骤参考【项目指导】->【新功能模块】->【混合使用ForceDark适配】。
+
+#### 词典已有功能深色模式改造遇到的坑
+
+* 某些页面或者控件没有声明继承自Light的主题，或者手动设置了非Light的主题，在强制深色模式的时候会导致这些页面或者控件得不到强制深色模式转换。这时判断原本页面如果是浅色的话，将主题改成Light，并设置ForceDark。
+* 某些页面直接在xml中写死了主题类型，并没有使用style.xml定义的主题，这种情况对于这些页面需要单独设置一下使用强制深色模式
+* 启动的Starting Window需要使用自定义颜色，不能强制深色。因为Starting Window阶段App还不能接管。
+* SDK中定义的主题需要替换的问题。若想不改SDK要不就在主工程复制一个改成forcedark，如果SDK中直接继承的是基础主题，可以在manifest中重新定义主题，并使用tools:replace="theme"
+* 旧项目中有动态设置状态栏颜色的，在设置颜色的入口中需要进行深色模式判断，如果是深色模式即取反。
+* Library库中的颜色和图片可在主工程中声明图样名字的进行覆盖。
+* 使用Inflate绘制的时候注意使用的context需要是设置了深色模式主题的context。
+* 对于自定义view中直接调用draw方法绘制到最顶层的元素，系统会认为是前景色不会进行深色变化，这个时候的绘制需使用自定义适配方案，并声明forcedark为false
+* inflate没有attached root的然后直接draw画出来的需要设置layouttype为hardware并且手动调用invalid，因为没有attatched root并不会走到viewRoot的深色模式变化流程
 
 
-
-#### 1. XML中设置颜色
-
-透明度处理（脚本自动生成）
-
-Selector api 23以上
-
-```kotlin
-not_define_night_color.setBackgroundColor(ContextCompat.getColor(this, R.color.color_main_1))
-not_define_night_color.backgroundTintList = ContextCompat.getColorStateList(this, R.color.color_main_1_alpha_20)
-```
-
-```xml
-<TextView
-        android:id="@+id/not_define_night_color"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="50dp"
-        android:background="@color/color_main_1"
-        android:backgroundTint="@color/color_main_1_alpha_20"
-        android:padding="20dp"
-        android:text="@string/not_define_night_color"
-        android:textColor="@color/color_text_0"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-```
-
-  **src/main/res/color/color_main_1_alpha_20.xml**
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:alpha="0.5" android:color="@color/color_main_1"/>
-</selector>
-```
-
-
-
-#### 2. XML中设置图片
-
-#### 3. 代码动态判断切换颜色&图片
-
-tint
-
-#### 4. 主题修改
-
-使用brdige主题
-
-将主题复制一份到night文件夹中，并设置forcedark
-
-由于针对`night`资源的自定义深色模式适配在Andorid10之前的版本就已经存在，但是Android10之前的版本没有ForceDark，因此适配了部分的`night`资源可能会导致只有部分页面或控件变成深色，为了避免这个问题，对于旧项目而言添加`night`资源需要指定资源的ap等级为29。
-
-ForceDark和`night`资源自定义适配会产生叠加的效果，如果某些组件不希望被forcedark，那么需要单独设置`android:forceDarkAllowed="false"`
-
-如果已经适配过night资源的空间，那么需要单独设置为`android:forceDarkAllowed="false"`
-
-### 新项目Or新模块
-
-DayNight并对所有颜色都处理night
 
 ### 最佳实践
 
 * 尽量使用系统提供的Notification样式
+
 * 避免hardcode颜色值
+
 * 尽量使用Vector类型的Drawable并动态设置颜色
+
 * 编写代码时刻考虑深色模式处理
 
-## 其他处理
+* 尽量避免使用.9图片，若要使用需提供深色模式版本
 
-### WebView深色模式处理
+* 圆角使用Glide的transform实现
 
-### Flutter 深色模式适配
+  
 
-Bridge
+### 其他处理
+
+#### ReactNative
+
+由于RN最后都会由原生控件进行渲染，因此可以对承载RN的页面主题设置ForceDark可以实现强制深色模式转换。
+
+#### WebView深色模式处理
+
+##### 自定义适配
+
+我们可以通过设置UserAgent以及调用前端方法的方式来通知前端进行自定义深色适配，前提是前端已经实现了对应深色逻辑。
+
+设置UserAgent（词典）：
+
+```kotlin
+private const val DARK_WEB_UA = " YDUIStyle/Dark"
+webView.settings.userAgentString = webView.settings.userAgentString + DARK_WEB_UA
+```
+
+调用前端方法（词典）：
+
+```kotlin
+webView.evaluateJavascript("window.setYDUIStyle('dark')", null)
+webView.evaluateJavascript("window.setYDUIStyle('light')", null)
+```
+
+##### Force Dark 
+
+首先在gradle中声明webkit依赖：
+
+```groovy
+implementation "androidx.webkit:webkit:$webkitVersion"
+```
+
+然后通过`WebSettingsCompat`进行设置：
+
+```java
+// 判断Webview版本是否支持设置ForceDark
+if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
+  // 开启WebView ForceDark
+  WebSettingsCompat.setForceDark(webView.settings, WebSettingsCompat.FORCE_DARK_ON)
+  // 关闭WebView ForceDark
+  WebSettingsCompat.setForceDark(webView.settings, WebSettingsCompat.FORCE_DARK_OFF)
+}
+```
+
+#### Flutter 深色模式适配
+
+待补充。
+
+
+
+### 词典中深色模式工具
+
+```kotlin
+object NightModeUtil {
+    private const val DARK_WEB_UA = " YDUIStyle/Dark"
+    /**
+     * 判断当前是否深色模式
+     *
+     * @return 深色模式返回 true，否则返回false
+     */
+    @JvmStatic
+    fun isNightMode(context: Context): Boolean {
+        if (!isNightModeAvailable()) return false
+        return when (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
+            Configuration.UI_MODE_NIGHT_YES -> true
+            else -> false
+        }
+    }
+
+    /**
+     * 判断是否能设置深色模式
+     *
+     * @return 可以返回true，否则返回false
+     */
+    @JvmStatic
+    fun isNightModeAvailable(): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+    }
+
+    /**
+     * 根据深色模式设置webview ua
+     */
+    @JvmStatic
+    fun changeWebViewNightModeUA(webView: WebView) {
+        val ua = webView.settings.userAgentString
+        if (isNightMode(webView.context)) {
+            if (!ua.contains(DARK_WEB_UA)) {
+                webView.settings.userAgentString = ua + DARK_WEB_UA
+            }
+        } else {
+            if (ua.contains(DARK_WEB_UA)) {
+                webView.settings.userAgentString = ua.replace(DARK_WEB_UA, "")
+            }
+        }
+    }
+
+    /**
+     * 处理webview深色模式
+     *
+     * 由于网页会使用大量图片，ForceDark后效果一般，直接禁用ForceDark并通知前端进行自定义适配
+     */
+    @JvmStatic
+    fun changeWebViewNightMode(webView: WebView) {
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
+            WebSettingsCompat.setForceDark(webView.settings, WebSettingsCompat.FORCE_DARK_OFF)
+        }
+        if (isNightMode(webView.context)) {
+            webView.evaluateJavascript("window.setYDUIStyle('dark')", null)
+        } else {
+            webView.evaluateJavascript("window.setYDUIStyle('light')", null)
+        }
+    }
+}
+```
+
+```java
+public class DictApplication extends Application {
+  /**
+   * 判断当前词典深色模式设置选项，并设置深色模式
+   */
+  public static void checkNightMode() {
+        if (NightModeUtil.isNightModeAvailable()) {
+            String type = PreferenceUtil.getString(PreferenceSetting.DARK_MODE_KEY, "auto");
+            switch (type) {
+                case "dark":
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                    break;
+                case "light":
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                    break;
+                default:
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+            }
+        }
+    }
+}
+```
 
 ## Demo
 
