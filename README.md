@@ -114,7 +114,7 @@ public static void setDefaultNightMode(@NightMode int mode) {
 
 从源码可以看出设置 [MODE_NIGHT_UNSPECIFIED](https://developer.android.com/reference/androidx/appcompat/app/AppCompatDelegate#MODE_NIGHT_UNSPECIFIED) 模式是不会生效的。
 
-*Tips：注意，深色模式变化会导致Activity重建。*
+*Tips：注意，深色模式变化会导致Activity重建，`AppCompatDelegate.setDefaultNightMode(int)`方法仅对继承自AppCompactActivity的页面有效。*
 
 ## 适配方案
 
@@ -435,6 +435,14 @@ tv_1.backgroundTintList = ContextCompat.getColorStateList(this, R.color.color_ma
 ```
 
 其中`android:tint`为叠加颜色，`@color/color_light`已经分别定义好了`notnight`和`night`的色值。
+
+*Tips: 为了节省图片占用的安装包大小，我们可以尽量对图标都使用使用vector类型资源，具体可以在UI设计稿中导出SVG格式图片，然后在Andorid Studio中导入，具体操作步骤如下：*
+
+![image-20201112104018956](https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20201112104018956.png) 
+
+![image-20201112104103489](https://raw.githubusercontent.com/shenguojun/ImageServer/master/uPic/image-20201112104103489.png)
+
+
 
 ##### Lottie
 
@@ -1235,7 +1243,9 @@ void RenderNode(Node node) {
 
 查看项目指导之前，请先查阅上面的适配方案及原理介绍。
 
+目前词典深色模式采用的方案是ForceDark与自定义适配混合方案，预计在9.0.4版本上线，对于9.0.4版本以前的功能会进行ForceDark，然后对部分有问题的资源进行自定义替换。
 
+对新旧功能的开发指导如下：
 
 ### 新功能模块
 
@@ -1277,14 +1287,36 @@ void RenderNode(Node node) {
 #### 词典已有功能深色模式改造遇到的坑
 
 * 某些页面或者控件没有声明继承自Light的主题，或者手动设置了非Light的主题，在强制深色模式的时候会导致这些页面或者控件得不到强制深色模式转换。这时判断原本页面如果是浅色的话，将主题改成Light，并设置ForceDark。
+
 * 某些页面直接在xml中写死了主题类型，并没有使用style.xml定义的主题，这种情况对于这些页面需要单独设置一下使用强制深色模式
+
 * 启动的Starting Window需要使用自定义颜色，不能强制深色。因为Starting Window阶段App还不能接管。
+
 * SDK中定义的主题需要替换的问题。若想不改SDK要不就在主工程复制一个改成forcedark，如果SDK中直接继承的是基础主题，可以在manifest中重新定义主题，并使用tools:replace="theme"
+
 * 旧项目中有动态设置状态栏颜色的，在设置颜色的入口中需要进行深色模式判断，如果是深色模式即取反。
+
 * Library库中的颜色和图片可在主工程中声明图样名字的进行覆盖。
+
 * 使用Inflate绘制的时候注意使用的context需要是设置了深色模式主题的context。
+
 * 对于自定义view中直接调用draw方法绘制到最顶层的元素，系统会认为是前景色不会进行深色变化，这个时候的绘制需使用自定义适配方案，并声明forcedark为false
+
 * inflate没有attached root的然后直接draw画出来的需要设置layouttype为hardware并且手动调用invalid，因为没有attatched root并不会走到viewRoot的深色模式变化流程
+
+* VIVO系统本身会对应用进行强制深色，如果使用ForceDark机制，实际上会在原生强制深色的基础上再次执行vivo本身的强制深色逻辑，导致页面异常，需要屏蔽。屏蔽方法是在`AndroidManifest.xml`中，对`application`标签下加入以下声明：
+
+  ```xml
+  <meta-data
+     android:name="android.vivo_nightmode_support"
+     android:value="false" />
+  ```
+
+* 华为系统也有类似于VIVO的深色模式处理，需要联系华为告知已经适配深色模式，并加入白名单，华为没有VIVO代码可以设置屏蔽的办法。
+
+* 小米系统中AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES) 并不能切换系统的深色模式，对于使用了forcedark的方案的不支持在应用内切换深色或浅色模式，因为ForceDark在小米系统中是否使用使用系统深色模式中的第三方应用列表开关控制。
+
+* `AppCompatDelegate.setDefaultNightMode`只能对继承自AppCompactActivity的页面生效，对于FlutterActivity没有继承AppCompactActivity的不生效
 
 
 
@@ -1301,6 +1333,8 @@ void RenderNode(Node node) {
 * 尽量避免使用.9图片，若要使用需提供深色模式版本
 
 * 圆角使用Glide的transform实现
+
+* 图标类型的图片资源最好从UI设计稿中导出SVG格式，并通过Android Studio导入为Vector格式，然后通过修改Vector中的适配了深色模式的颜色值，以减少深色图片资源占用包体积大小
 
   
 
@@ -1352,11 +1386,148 @@ if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
 
 #### Flutter 深色模式适配
 
-待补充。
+对Flutter Widget 外层包裹一层`InheritedWidget`，并在外层的`InheritedWidget`中定义根据当前深色模式与否获取色值和图片的方法，从而Flutter页面可以通过`context.dependOnInheritedWidgetOfExactType`获取到当前深色模式状态。参考下面代码中`AutoDarkTheme.of(context).colors.color_bg_1`的用法。
+
+如果是需要自动跟随系统，则使用MediaQuery.of(context).platformBrightness;判断是否深色还是浅色，然后再获取对应的色值和图片就可以了。
+
+如果是需要应用手动进行深浅色切换，需要通过Flutter platform channel的方式在platform代码层通过channel通知Flutter进行深色模式切换。例如下面例子中的`DictCommonBridge.shared.isNightMode`
+
+```dart
+class AutoDarkTheme extends InheritedWidget {
+  final AutoColor colors;
+  final bool isDark;
+
+  AutoDarkTheme(this.colors, this.isDark, Widget child) : super(child: child);
+
+  static AutoDarkTheme of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<AutoDarkTheme>();
+  }
+
+  Image image(String name, {double width = null, double height = null}) {
+    if (!isDark) {
+      return Image.asset('images/$name',
+          package: 'package', width: width, height: height);
+    }
+    var separatedIndex = name.lastIndexOf(".");
+    assert(separatedIndex != -1);
+    var darkName =
+        "${name.substring(0, separatedIndex)}_dark${name.substring(separatedIndex)}";
+    return Image.asset('images/$darkName',
+        package: 'package', width: width, height: height);
+  }
+
+  @override
+  bool updateShouldNotify(AutoDarkTheme oldWidget) {
+    return isDark != oldWidget.isDark;
+  }
+}
+
+class AutoDarkBaseWidget extends StatefulWidget {
+  final Widget child;
+
+  AutoDarkBaseWidget({this.child});
+
+  @override
+  State<StatefulWidget> createState() {
+    return _AutoDarkBaseWidget();
+  }
+}
+
+class _AutoDarkBaseWidget extends State<AutoDarkBaseWidget>
+    with WidgetsBindingObserver {
+  bool isDark;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    getNightMode();
+  }
+
+  Future<void> getNightMode() async {
+    try {
+      var platformDark = await DictCommonBridge.shared.isNightMode;
+      if (platformDark != null) isDark = platformDark;
+    } on Exception {}
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    getNightMode();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Brightness brightnessValue = MediaQuery.of(context).platformBrightness;
+    isDark = brightnessValue == Brightness.dark;
+    return AutoDarkTheme(AutoColor(isDark), isDark, widget.child);
+  }
+}
+
+class AutoColor {
+  bool isDark = false;
+
+  AutoColor(this.isDark) {
+    init();
+  }
+
+  Color color_bg_1;
+  Color color_text_1;
+
+  void init() {
+    color_bg_1 =
+        colorWithMode({false: Color(0xffffffff), true: Color(0xff000000)});
+    color_text_1 =
+        colorWithMode({false: Color(0xff242429), true: Color(0xffFEF3F4)});
+  }
+
+  Color colorWithMode(Map<bool, Color> colors) {
+    return colors[isDark];
+  }
+}
+
+void main() => runApp(MyApp());
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: AutoDarkBaseWidget(
+        child: BusinessWidget(),
+      ),
+    );
+  }
+}
+
+class BusinessWidget extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration:
+      BoxDecoration(color: AutoDarkTheme.of(context).colors.color_bg_1),
+      child: Center(
+        child: Text("hello word",
+            style: TextStyle(
+                color: AutoDarkTheme.of(context).colors.color_text_1)),
+      ),
+    );
+  }
+}
+```
 
 
 
 ### 词典中深色模式工具
+
+合并dev_dark_theme分支后可使用以下工具方法：
 
 ```kotlin
 object NightModeUtil {
