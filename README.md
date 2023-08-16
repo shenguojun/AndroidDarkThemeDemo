@@ -1316,6 +1316,8 @@ void RenderNode(Node node) {
 
 * 小米系统中AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES) 并不能切换系统的深色模式，对于使用了forcedark的方案的不支持在应用内切换深色或浅色模式，因为ForceDark在小米系统中是否使用使用系统深色模式中的第三方应用列表开关控制。
 
+* 魅族有自己的一套深色模式方案，如果使用了原生forcedark，Androd10深色模式适配后需要加入他们的白名单，加入白名单后将禁用魅族自有的深色模式方案。
+
 * `AppCompatDelegate.setDefaultNightMode`只能对继承自AppCompactActivity的页面生效，对于FlutterActivity没有继承AppCompactActivity的不生效
 
 

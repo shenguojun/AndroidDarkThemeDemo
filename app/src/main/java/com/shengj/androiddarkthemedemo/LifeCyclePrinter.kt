@@ -7,7 +7,6 @@ import androidx.lifecycle.LifecycleOwner
 /**
  * @description print activity life cycle
  *
- * @author shengj (shengj@rd.netease.com)
  * @date 9/15/20 18:54
  */
 class LifeCyclePrinter(private val TAG: String) : DefaultLifecycleObserver {
